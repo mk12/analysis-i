@@ -415,7 +415,7 @@ namespace N
         (suppose a ≤ b,
           show ¬ a > b, from
             suppose a > b,
-            show false, from not_le_and_gt (and.intro `a ≤ b` `a > b`))
+            absurd (and.intro `a ≤ b` `a > b`) not_le_and_gt)
         (suppose ¬ a > b,
           show a ≤ b, from or.elim3 trichotomy
             (suppose a < b, and.left this)

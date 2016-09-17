@@ -16,8 +16,8 @@ namespace set
     definition mem (x : X) (A : set X) : Prop := A x
     definition empty : set X := λ x, false
 
-    infix `∈` := mem
-    notation a `∉` s := ¬ mem a s
+    infix ` ∈ ` := mem
+    notation a ` ∉ ` s := ¬ mem a s
     notation `∅` := empty
   end basic
 
@@ -62,7 +62,7 @@ namespace set
 
   -- Axiom 3.4: Pairwise union
   definition union (A B : Set) : Set := λ x, x ∈ A ∨ x ∈ B
-  infix `∪` := union
+  infix ` ∪ ` := union
 
   -- Lemma 3.1.12
   section union_properties
@@ -91,9 +91,9 @@ namespace set
 
   -- Definition 3.1.14: Subsets
   definition subset (A B : Set) := ∀ {{x}}, x ∈ A → x ∈ B
-  infix `⊆` := subset
+  infix ` ⊆ ` := subset
   definition proper_subset (A B : Set) := A ⊆ B ∧ A ≠ B
-  infix `⊂`:50 := proper_subset
+  infix ` ⊂ `:50 := proper_subset
 
   -- Proposition 3.1.17: Sets are partially ordered by set inclusion
   section subset_properties
@@ -133,11 +133,11 @@ namespace set
 
   -- Definition 3.1.22: Intersections
   definition inter (A B : Set) : Set := λ x, x ∈ A ∧ x ∈ B
-  infix `∩` := inter
+  infix ` ∩ ` := inter
 
   -- Definition 3.1.26: Difference sets
   definition diff (A B : Set) : Set := λ x, x ∈ A ∧ x ∉ B
-  infix `\`:70 := diff
+  infix ` \ `:70 := diff
 
   -- Proposition 3.1.27: Sets form a boolean algebra
   section boolean_algebra
@@ -244,7 +244,7 @@ namespace set
           suppose x ∈ A ∪ (X \ A),
           show x ∈ X, from or.elim this !HA and.left)
         (take x,
-          suppose x ∈ X, 
+          suppose x ∈ X,
           show x ∈ A ∪ (X \ A), from by_cases
             (suppose x ∈ A, or.inl this)
             (suppose x ∉ A, or.inr (and.intro `x ∈ X` this)))
@@ -314,8 +314,33 @@ namespace set
   -- Axiom 3.7: Infinity
   definition infinity : set N := λ x, true
 
-  -- Exercise 3.1.5
+  -- Exercise 3.1.1
   section equivalence
+    variables {A B C : Set}
+
+    -- Reflexive
+    example : A = A :=
+      let f := take x, id in set_eq_intro f f
+
+    -- Symmetric
+    example (H : A = B) : B = A :=
+      have ∀ x, x ∈ B ↔ x ∈ A, from
+        take x,
+        have x ∈ A ↔ x ∈ B, from iff.mp set_eq H x,
+        show x ∈ B ↔ x ∈ A, from iff.symm this,
+      show B = A, from iff.mpr set_eq this
+
+    -- Transitive
+    example (H1 : A = B) (H2 : B = C) : A = C :=
+      have H1' : ∀ {x}, x ∈ A ↔ x ∈ B, from iff.mp set_eq H1,
+      have H2' : ∀ {x}, x ∈ B ↔ x ∈ C, from iff.mp set_eq H2,
+      show A = C, from set_eq_intro
+        (take x, suppose x ∈ A, iff.mp H2' (iff.mp H1' this))
+        (take x, suppose x ∈ C, iff.mpr H1' (iff.mpr H2' this))
+  end equivalence
+
+  -- Exercise 3.1.5
+  section
     variables {A B : Set}
 
     -- (1) → (2)
@@ -338,5 +363,168 @@ namespace set
       suppose x ∈ A,
       have x ∈ A ∩ B, from H' this,
       show x ∈ B, from and.right this
-  end equivalence
+  end
+
+  -- Exercise 3.1.7
+  section
+    variables {A B C : Set}
+
+    example : A ∩ B ⊆ A :=
+      take x,
+      suppose x ∈ A ∩ B,
+      show x ∈ A, from and.left this
+
+    example : A ∩ B ⊆ B :=
+      take x,
+      suppose x ∈ A ∩ B,
+      show x ∈ B, from and.right this
+
+    example : C ⊆ A ∧ C ⊆ B ↔ C ⊆ A ∩ B :=
+      iff.intro
+        (suppose C ⊆ A ∧ C ⊆ B,
+          have H1 : C ⊆ A, from and.left this,
+          have H2 : C ⊆ B, from and.right this,
+          show C ⊆ A ∩ B, from
+            take x,
+            suppose x ∈ C,
+            show x ∈ A ∧ x ∈ B, from and.intro (H1 this) (H2 this))
+        (suppose H : C ⊆ A ∩ B,
+          have C ⊆ A, from
+            take x,
+            suppose x ∈ C,
+            have x ∈ A ∩ B, from H this,
+            show x ∈ A, from and.left this,
+          have C ⊆ B, from
+            take x,
+            suppose x ∈ C,
+            have x ∈ A ∩ B, from H this,
+            show x ∈ B, from and.right this,
+          show C ⊆ A ∧ C ⊆ B, from and.intro `C ⊆ A` `C ⊆ B`)
+
+    example : A ⊆ A ∪ B :=
+      take x,
+      suppose x ∈ A,
+      show x ∈ A ∪ B, from or.inl this
+
+    example : B ⊆ A ∪ B :=
+      take x,
+      suppose x ∈ B,
+      show x ∈ A ∪ B, from or.inr this
+
+    example : A ⊆ C ∧ B ⊆ C ↔ A ∪ B ⊆ C :=
+      iff.intro
+        (assume H : A ⊆ C ∧ B ⊆ C,
+          show A ∪ B ⊆ C, from
+            take x,
+            suppose x ∈ A ∪ B,
+            show x ∈ C, from or.elim this
+              (suppose x ∈ A, and.left H x this)
+              (suppose x ∈ B, and.right H x this))
+        (assume H : A ∪ B ⊆ C,
+          have A ⊆ C, from
+            take x,
+            suppose x ∈ A,
+            have x ∈ A ∪ B, from or.inl this,
+            show x ∈ C, from H this,
+          have B ⊆ C, from
+            take x,
+            suppose x ∈ B,
+            have x ∈ A ∪ B, from or.inr this,
+            show x ∈ C, from H this,
+          show A ⊆ C ∧ B ⊆ C, from and.intro `A ⊆ C` `B ⊆ C`)
+  end
+
+  -- Exercise 3.1.8
+  section absorption
+    variables {A B : Set}
+
+    example : A ∩ (A ∪ B) = A :=
+      set_eq_intro
+        (take x, suppose x ∈ A ∩ (A ∪ B), and.left this)
+        (take x, suppose x ∈ A, and.intro this (or.inl this))
+
+    example : A ∪ (A ∩ B) = A :=
+      set_eq_intro
+        (take x, suppose x ∈ A ∪ (A ∩ B), or.elim this id and.left)
+        (take x, suppose x ∈ A, or.inl this)
+  end absorption
+
+  -- Exercise 3.1.9
+  section
+    variables {A B X : Set}
+    premises (H1 : A ∪ B = X) (H2 : A ∩ B = ∅)
+
+    private proposition inverse_one : A = X \ B :=
+      set_eq_intro
+        (take x,
+          suppose x ∈ A,
+          have x ∈ X, from H1 ▸ or.inl this,
+          have x ∉ B, from
+            suppose x ∈ B,
+            have x ∈ A ∩ B, from and.intro `x ∈ A` `x ∈ B`,
+            have x ∈ ∅, from H2 ▸ this,
+            absurd this not_in_empty,
+          show x ∈ X \ B, from and.intro `x ∈ X` `x ∉ B`)
+        (take x,
+          suppose x ∈ X \ B,
+          have H3 : x ∈ A ∪ B, from H1⁻¹ ▸ and.left this,
+          have H4 : x ∉ B, from and.right this,
+          show x ∈ A, from by_contradiction
+            (suppose x ∉ A,
+              have x ∉ A ∧ x ∉ B, from and.intro this H4,
+              have x ∉ A ∪ B, from dm_not_or this,
+              absurd H3 this))
+
+    private proposition inverse_two : B = X \ A :=
+      inverse_one (union_comm ▸ H1) (inter_comm ▸ H2)
+  end
+
+  -- Exercise 3.1.10
+  section
+    variables {A B : Set}
+
+    example : (A \ B) ∩ (B \ A) = ∅ :=
+      no_elements
+        (take x,
+          assume H : x ∈ (A \ B) ∩ (B \ A),
+          have x ∈ A, from and.left (and.left H),
+          have x ∉ A, from and.right (and.right H),
+          absurd `x ∈ A` `x ∉ A`)
+
+    example : (A \ B) ∩ (A ∩ B) = ∅ :=
+      no_elements
+        (take x,
+          assume H : x ∈ (A \ B) ∩ (A ∩ B),
+          have x ∈ B, from and.right (and.right H),
+          have x ∉ B, from and.right (and.left H),
+          absurd `x ∈ B` `x ∉ B`)
+
+    example : (B \ A) ∩ (A ∩ B) = ∅ :=
+      no_elements
+        (take x,
+          assume H : x ∈ (B \ A) ∩ (A ∩ B),
+          have x ∈ A, from and.left (and.right H),
+          have x ∉ A, from and.right (and.left H),
+          absurd `x ∈ A` `x ∉ A`)
+
+    example : (A \ B) ∪ (A ∩ B) ∪ (B \ A) = A ∪ B :=
+      set_eq_intro
+        (take x,
+          suppose x ∈ (A \ B) ∪ (A ∩ B) ∪ (B \ A),
+          show x ∈ A ∪ B, from or.elim this
+            (suppose x ∈ (A \ B) ∪ (A ∩ B), or.elim this
+              (suppose x ∈ A \ B, or.inl (and.left this))
+              (suppose x ∈ A ∩ B, or.inl (and.left this)))
+            (suppose x ∈ B \ A, or.inr (and.left this)))
+        (take x,
+          suppose x ∈ A ∪ B,
+          show x ∈ (A \ B) ∪ (A ∩ B) ∪ (B \ A), from or.elim this
+            (suppose x ∈ A, by_cases
+              (suppose x ∈ B, or.inl (or.inr (and.intro `x ∈ A` `x ∈ B`)))
+              (suppose x ∉ B, or.inl (or.inl (and.intro `x ∈ A` `x ∉ B`))))
+            (suppose x ∈ B, by_cases
+              (suppose x ∈ A, or.inl (or.inr (and.intro `x ∈ A` `x ∈ B`)))
+              (suppose x ∉ A, or.inr (and.intro `x ∈ B` `x ∉ A`))))
+  end
+
 end set
