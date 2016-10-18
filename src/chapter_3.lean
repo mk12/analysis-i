@@ -3,10 +3,10 @@
 
 import .common .chapter_2
 
-open classical eq.ops
+open classical eq.ops sigma.ops
 
 -- A set is defined as a membership predicate
-definition set (X : Type) := X → Prop
+definition set (X : Type) : Type := X → Prop
 
 namespace set
   -- Basic definitions
@@ -90,9 +90,9 @@ namespace set
   end union_properties
 
   -- Definition 3.1.14: Subsets
-  definition subset (A B : Set) := ∀ {{x}}, x ∈ A → x ∈ B
+  definition subset (A B : Set) : Prop := ∀ {{x}}, x ∈ A → x ∈ B
   infix ` ⊆ ` := subset
-  definition proper_subset (A B : Set) := A ⊆ B ∧ A ≠ B
+  definition proper_subset (A B : Set) : Prop := A ⊆ B ∧ A ≠ B
   infix ` ⊂ `:50 := proper_subset
 
   -- Proposition 3.1.17: Sets are partially ordered by set inclusion
@@ -527,22 +527,40 @@ namespace set
               (suppose x ∉ A, or.inr (and.intro `x ∈ B` `x ∉ A`))))
   end
 
+  -- Definition 3.3.1: Functions
+  definition Fun (X Y : Set) : Type := Π {{x}}, x ∈ X → Σ y, y ∈ Y
+  infixr ` => `:25 := Fun
+
+  -- Function application
+  definition fun_apply {X Y : Set} (f : X => Y) {x : Object} (H : x ∈ X) :
+      Object :=
+    sigma.pr1 (f H)
+  infix ` $ `:60 := fun_apply
+
   -- Definition 3.3.7: Equality of functions
-  axiom fun_eq {X Y : Type} {f : X → Y} {g : X → Y} : f = g ↔ ∀ x : X, f x = g x
+  axiom fun_eq {X Y : Set} {f g : X => Y} :
+    f = g ↔ ∀ x, Π Hx : x ∈ X, f $ Hx = g $ Hx
+
+  -- Convenient way of demonstrating equality
+  proposition fun_eq_intro {X Y : Set} {f g : X => Y}
+      (H : ∀ x, Π Hx : x ∈ X, f $ Hx = g $ Hx) : f = g :=
+    iff.mpr fun_eq H
 
   -- Definition 3.3.10: Composition
-  definition comp {X Y Z : Type} (f : Y → Z) (g : X → Y) : X → Z := λ x, f (g x)
+  definition comp {X Y Z : Set} (g : Y => Z) (f : X => Y) : X => Z :=
+    λ x (Hx : x ∈ X), g (f Hx).2
   infixr ` ∘ ` := comp
 
   -- Lemma 3.3.12: Composition is associative
-  lemma comp_assoc {X Y Z W : Type} (f : Z → W) (g : Y → Z) (h : X → Y) :
+  lemma comp_assoc {X Y Z W : Set} (f : Z => W) (g : Y => Z) (h : X => Y) :
       f ∘ (g ∘ h) = (f ∘ g) ∘ h :=
-    iff.mpr fun_eq (take x, rfl)
+    fun_eq_intro (take x, suppose x ∈ X, rfl)
 
   -- Definition 3.3.14: One-to-one functions
-  definition injective {X Y : Type} (f : X → Y) :=
-    ∀ {a b : X}, f a = f b → a = b
+  definition injective {X Y : Set} (f : X => Y) : Prop :=
+    ∀ {a b}, Π (Ha : a ∈ X) (Hb : b ∈ X), f $ Ha = f $ Hb → a = b
 
+/-
   -- Definition 3.3.17: Onto functions
   definition surjective {X Y : Type} (f : X → Y) :=
     ∀ y : Y, ∃ x : X, f x = y
@@ -596,4 +614,10 @@ namespace set
         ... = z : Hy,
       show ∃ x : X, (g ∘ f) x = z, from exists.intro x this
   end
+
+  -- Exercise 3.3.3
+  section
+    -- variable
+  end
+   -/
 end set
