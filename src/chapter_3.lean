@@ -3,7 +3,7 @@
 
 import .common .chapter_2
 
-open classical eq.ops sigma.ops
+open classical eq.ops
 
 -- A set is defined as a membership predicate
 definition set (X : Type) : Type := X → Prop
@@ -527,66 +527,67 @@ namespace set
               (suppose x ∉ A, or.inr (and.intro `x ∈ B` `x ∉ A`))))
   end
 
+  -- Convert Set to Type using dependent pairs
+  definition Mem (X : Set) : Type := Σ x, x ∈ X
+
   -- Definition 3.3.1: Functions
-  definition Fun (X Y : Set) : Type := Π {{x}}, x ∈ X → Σ y, y ∈ Y
+  definition Fun (X Y : Set) : Type := Mem X → Mem Y
   infixr ` => `:25 := Fun
 
-  -- Function application
-  definition fun_apply {X Y : Set} (f : X => Y) {x : Object} (H : x ∈ X) :
-      Object :=
-    sigma.pr1 (f H)
-  infix ` $ `:60 := fun_apply
-
   -- Definition 3.3.7: Equality of functions
-  axiom fun_eq {X Y : Set} {f g : X => Y} :
-    f = g ↔ ∀ x, Π Hx : x ∈ X, f $ Hx = g $ Hx
+  axiom fun_eq {X Y : Set} {f g : X => Y} : f = g ↔ ∀ x, f x = g x
 
   -- Convenient way of demonstrating equality
-  proposition fun_eq_intro {X Y : Set} {f g : X => Y}
-      (H : ∀ x, Π Hx : x ∈ X, f $ Hx = g $ Hx) : f = g :=
+  proposition fun_eq_intro {X Y : Set} {f g : X => Y} (H : ∀ x, f x = g x) :
+      f = g :=
     iff.mpr fun_eq H
 
   -- Definition 3.3.10: Composition
   definition comp {X Y Z : Set} (g : Y => Z) (f : X => Y) : X => Z :=
-    λ x (Hx : x ∈ X), g (f Hx).2
+    λ x, g (f x)
   infixr ` ∘ ` := comp
 
   -- Lemma 3.3.12: Composition is associative
   lemma comp_assoc {X Y Z W : Set} (f : Z => W) (g : Y => Z) (h : X => Y) :
       f ∘ (g ∘ h) = (f ∘ g) ∘ h :=
-    fun_eq_intro (take x, suppose x ∈ X, rfl)
+    fun_eq_intro
+      (take x,
+        show (f ∘ (g ∘ h)) x = ((f ∘ g) ∘ h) x, from calc
+          (f ∘ (g ∘ h)) x = f ((g ∘ h) x) : rfl
+          ... = f (g (h x)) : rfl
+          ... = (f ∘ g) (h x) : rfl
+          ... = ((f ∘ g) ∘ h) x : rfl)
 
   -- Definition 3.3.14: One-to-one functions
   definition injective {X Y : Set} (f : X => Y) : Prop :=
-    ∀ {a b}, Π (Ha : a ∈ X) (Hb : b ∈ X), f $ Ha = f $ Hb → a = b
+    ∀ {x x'}, f x = f x' → x = x'
 
-/-
   -- Definition 3.3.17: Onto functions
-  definition surjective {X Y : Type} (f : X → Y) :=
-    ∀ y : Y, ∃ x : X, f x = y
+  definition surjective {X Y : Set} (f : X => Y) : Prop :=
+    ∀ y, ∃ x, f x = y
 
   -- Definition 3.3.20: Bijective functions
-  definition bijective {X Y : Type} (f : X → Y) :=
+  definition bijective {X Y : Set} (f : X => Y) :=
     injective f ∧ surjective f
-    
+
   -- Exercise 3.3.1
   section equivalence
-    variables {X Y : Type} {f g h : X → Y}
+    variables {X Y : Set} {f g h : X => Y}
 
     -- Reflexive
     example : f = f :=
-      iff.mpr fun_eq (take x, rfl)
+      fun_eq_intro (take x, rfl)
 
     -- Symmetric
     example (H : f = g) : g = f :=
-      iff.mpr fun_eq
+      fun_eq_intro
         (take x,
           have f x = g x, from iff.mp fun_eq H x,
-          show g x = f x, from eq.symm this)
+          show g x = f x, from this⁻¹)
 
     -- Transitive
     example (H1 : f = g) (H2 : g = h) : f = h :=
-      iff.mpr fun_eq
+      fun_eq_intro
         (take x,
           have H1' : f x = g x, from iff.mp fun_eq H1 x,
           have H2' : g x = h x, from iff.mp fun_eq H2 x,
@@ -595,29 +596,23 @@ namespace set
 
   -- Exercise 3.3.2
   section
-    variables {X Y Z : Type} {f : X → Y} {g : Y → Z}
+    variables {X Y Z : Set} {f : X => Y} {g : Y => Z}
 
     example (H1 : injective f) (H2 : injective g) : injective (g ∘ f) :=
-      take a,
-      take b,
-      suppose (g ∘ f) a = (g ∘ f) b,
-      have f a = f b, from H2 this,
-      show a = b, from H1 this
-        
+      take x x',
+      suppose (g ∘ f) x = (g ∘ f) x',
+      have g (f x) = g (f x'), from this,
+      have f x = f x', from H2 this,
+      show x = x', from H1 this
+
     example (H1 : surjective f) (H2 : surjective g) : surjective (g ∘ f) :=
       take z,
-      obtain (y : Y) (Hy : g y = z), from H2 z,
-      obtain (x : X) (Hx : f x = y), from H1 y,
+      obtain y (Hy : g y = z), from H2 z,
+      obtain x (Hx : f x = y), from H1 y,
       have (g ∘ f) x = z, from calc
         (g ∘ f) x = g (f x) : rfl
-        ... = g y : Hx
+        ... = g y : {Hx}
         ... = z : Hy,
-      show ∃ x : X, (g ∘ f) x = z, from exists.intro x this
+      show ∃ x, (g ∘ f) x = z, from exists.intro x this
   end
-
-  -- Exercise 3.3.3
-  section
-    -- variable
-  end
-   -/
 end set
