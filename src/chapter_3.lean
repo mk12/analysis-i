@@ -3,7 +3,7 @@
 
 import .common .chapter_2
 
-open classical eq.ops
+open classical eq.ops sigma.ops
 
 -- A set is defined as a membership predicate
 definition set (X : Type) : Type := X → Prop
@@ -535,23 +535,23 @@ namespace set
   infixr ` => `:25 := Fun
 
   -- Definition 3.3.7: Equality of functions
-  axiom fun_eq {X Y : Set} {f g : X => Y} : f = g ↔ ∀ x, f x = g x
+  axiom fun_eq {X Y : Set} {f g : X => Y} : f = g ↔ ∀ x : Mem X, f x = g x
 
   -- Convenient way of demonstrating equality
-  proposition fun_eq_intro {X Y : Set} {f g : X => Y} (H : ∀ x, f x = g x) :
-      f = g :=
+  proposition fun_eq_intro {X Y : Set} {f g : X => Y}
+      (H : ∀ x : Mem X, f x = g x) : f = g :=
     iff.mpr fun_eq H
 
   -- Definition 3.3.10: Composition
   definition comp {X Y Z : Set} (g : Y => Z) (f : X => Y) : X => Z :=
-    λ x, g (f x)
+    λ x : Mem X, g (f x)
   infixr ` ∘ ` := comp
 
   -- Lemma 3.3.12: Composition is associative
   lemma comp_assoc {X Y Z W : Set} (f : Z => W) (g : Y => Z) (h : X => Y) :
       f ∘ (g ∘ h) = (f ∘ g) ∘ h :=
     fun_eq_intro
-      (take x,
+      (take x : Mem X,
         show (f ∘ (g ∘ h)) x = ((f ∘ g) ∘ h) x, from calc
           (f ∘ (g ∘ h)) x = f ((g ∘ h) x) : rfl
           ... = f (g (h x)) : rfl
@@ -560,11 +560,11 @@ namespace set
 
   -- Definition 3.3.14: One-to-one functions
   definition injective {X Y : Set} (f : X => Y) : Prop :=
-    ∀ {x x'}, f x = f x' → x = x'
+    ∀ {{x x' : Mem X}}, f x = f x' → x = x'
 
   -- Definition 3.3.17: Onto functions
   definition surjective {X Y : Set} (f : X => Y) : Prop :=
-    ∀ y, ∃ x, f x = y
+    ∀ y : Mem Y, ∃ x : Mem X, f x = y
 
   -- Definition 3.3.20: Bijective functions
   definition bijective {X Y : Set} (f : X => Y) :=
@@ -576,19 +576,19 @@ namespace set
 
     -- Reflexive
     example : f = f :=
-      fun_eq_intro (take x, rfl)
+      fun_eq_intro (take x : Mem X, rfl)
 
     -- Symmetric
     example (H : f = g) : g = f :=
       fun_eq_intro
-        (take x,
+        (take x : Mem X,
           have f x = g x, from iff.mp fun_eq H x,
           show g x = f x, from this⁻¹)
 
     -- Transitive
     example (H1 : f = g) (H2 : g = h) : f = h :=
       fun_eq_intro
-        (take x,
+        (take x : Mem X,
           have H1' : f x = g x, from iff.mp fun_eq H1 x,
           have H2' : g x = h x, from iff.mp fun_eq H2 x,
           show f x = h x, from H2' ▸ H1')
@@ -599,20 +599,55 @@ namespace set
     variables {X Y Z : Set} {f : X => Y} {g : Y => Z}
 
     example (H1 : injective f) (H2 : injective g) : injective (g ∘ f) :=
-      take x x',
+      take x x' : Mem X,
       suppose (g ∘ f) x = (g ∘ f) x',
       have g (f x) = g (f x'), from this,
       have f x = f x', from H2 this,
       show x = x', from H1 this
 
     example (H1 : surjective f) (H2 : surjective g) : surjective (g ∘ f) :=
-      take z,
-      obtain y (Hy : g y = z), from H2 z,
-      obtain x (Hx : f x = y), from H1 y,
+      take z : Mem Z,
+      obtain (y : Mem Y) (Hy : g y = z), from H2 z,
+      obtain (x : Mem X) (Hx : f x = y), from H1 y,
       have (g ∘ f) x = z, from calc
         (g ∘ f) x = g (f x) : rfl
         ... = g y : {Hx}
         ... = z : Hy,
-      show ∃ x, (g ∘ f) x = z, from exists.intro x this
+      show ∃ x : Mem X, (g ∘ f) x = z, from exists.intro x this
   end
+
+  -- Exercise 3.3.3
+  section empty_function
+    parameters {X : Set}
+
+    definition empty_fun : ∅ => X :=
+      λ e : Mem ∅, absurd e.2 not_in_empty
+
+    proposition empty_fun_inj : injective empty_fun :=
+      take e e' : Mem ∅,
+      show empty_fun e = empty_fun e' → e = e', from absurd e.2 not_in_empty
+
+    proposition empty_fun_surj : surjective empty_fun ↔ X = ∅ :=
+      iff.intro
+        (assume H : surjective empty_fun,
+          show X = ∅, from by_contradiction
+            (suppose X ≠ ∅,
+              obtain a (Ha : a ∈ X), from single_choice this,
+              have x : Mem X, from dpair a Ha,
+              obtain (e : Mem ∅) He, from H x,
+              absurd e.2 not_in_empty))
+        (suppose X = ∅,
+          take x : Mem X,
+          have x.1 ∈ ∅, from this ▸ x.2,
+          show ∃ e : Mem ∅, empty_fun e = x, from absurd this not_in_empty)
+
+    proposition empty_fun_bij : bijective empty_fun ↔ X = ∅ :=
+      iff.intro
+        (suppose bijective empty_fun,
+          have surjective empty_fun, from and.right this,
+          show X = ∅, from iff.mp empty_fun_surj this)
+        (suppose X = ∅,
+          have surjective empty_fun, from iff.mpr empty_fun_surj this,
+          show bijective empty_fun, from and.intro empty_fun_inj this)
+  end empty_function
 end set
