@@ -168,18 +168,18 @@ namespace N
     proposition order_refl : a ≥ a :=
       exists.intro 0 (calc a = a + 0 : add_zero_right)
 
-    proposition order_trans (H1 : a ≥ b) (H2 : b ≥ c) : a ≥ c :=
-      obtain (n : N) (Hn : a = b + n), from H1,
-      obtain (m : N) (Hm : b = c + m), from H2,
+    proposition order_trans (H₁ : a ≥ b) (H₂ : b ≥ c) : a ≥ c :=
+      obtain (n : N) (Hn : a = b + n), from H₁,
+      obtain (m : N) (Hm : b = c + m), from H₂,
       have a = c + (m + n), from calc
         a = b + n : Hn
         ... = c + m + n : Hm
         ... = c + (m + n) : add_assoc,
       show a ≥ c, from exists.intro (m + n) this
 
-    proposition order_antisymm (H1 : a ≥ b) (H2 : b ≥ a) : a = b :=
-      obtain (n : N) (Hn : a = b + n), from H1,
-      obtain (m : N) (Hm : b = a + m), from H2,
+    proposition order_antisymm (H₁ : a ≥ b) (H₂ : b ≥ a) : a = b :=
+      obtain (n : N) (Hn : a = b + n), from H₁,
+      obtain (m : N) (Hm : b = a + m), from H₂,
       have a + 0 = a + (m + n), from calc
         a + 0 = a : add_zero_right
         ... = b + n : Hn
@@ -242,11 +242,11 @@ namespace N
     proposition lt_iff_succ_le : a < b ↔ succ a ≤ b :=
       iff.intro
         (suppose a < b,
-          obtain (d : N) (H1 : b = a + d ∧ pos d), from iff.mp lt_pos this,
-          obtain (d' : N) (H2 : succ d' = d), from pos_pred (and.right H1),
+          obtain (d : N) (H₁ : b = a + d ∧ pos d), from iff.mp lt_pos this,
+          obtain (d' : N) (H₂ : succ d' = d), from pos_pred (and.right H₁),
           have b = succ a + d', from calc
-            b = a + d : and.left H1
-            ... = a + succ d' : H2
+            b = a + d : and.left H₁
+            ... = a + succ d' : H₂
             ... = succ (a + d') : add_succ_right
             ... = succ a + d' : rfl,
           show succ a ≤ b, from exists.intro d' this)
@@ -274,11 +274,11 @@ namespace N
     proposition lt_succ_iff_le : a < succ b ↔ a ≤ b :=
       iff.intro
         (suppose a < succ b,
-          obtain (d : N) (H1 : succ b = a + d ∧ pos d), from iff.mp lt_pos this,
-          obtain (d' : N) (H2 : succ d' = d), from pos_pred (and.right H1),
+          obtain (d : N) (H₁ : succ b = a + d ∧ pos d), from iff.mp lt_pos this,
+          obtain (d' : N) (H₂ : succ d' = d), from pos_pred (and.right H₁),
           have succ b = succ (a + d'), from calc
-            succ b = a + d : and.left H1
-            ... = a + succ d' : H2
+            succ b = a + d : and.left H₁
+            ... = a + succ d' : H₂
             ... = succ (a + d') : add_succ_right,
           have b = a + d', from A4 this,
           show a ≤ b, from exists.intro d' this)
@@ -351,39 +351,39 @@ namespace N
                 (suppose succ a = b, or.inr (or.inl this))
                 (suppose succ a ≠ b, or.inl (and.intro H this)))
             (suppose a = b,
-              have H1 : succ a = b + succ 0, from calc
+              have H₁ : succ a = b + succ 0, from calc
                 succ a = succ b : this
                 ... = succ b + 0 : add_zero_right
                 ... = succ (b + 0) : rfl
                 ... = b + succ 0 : add_succ_right,
-              have H2 : b ≠ succ a, from
+              have H₂ : b ≠ succ a, from
                 suppose b = succ a,
                 have b + 0 = b + succ 0, from calc
                   b + 0 = b : add_zero_right
                   ... = succ a : this
-                  ... = b + succ 0 : H1,
+                  ... = b + succ 0 : H₁,
                 have 0 = succ 0, from add_cancel this,
                 absurd this⁻¹ A3,
-              have succ a ≥ b, from exists.intro (succ 0) H1,
-              have succ a > b, from and.intro this H2,
+              have succ a ≥ b, from exists.intro (succ 0) H₁,
+              have succ a > b, from and.intro this H₂,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
                 or.inr (or.inr this))
             (suppose a > b,
               obtain (n : N) (Hn : a = b + n), from and.left this,
               have b ≠ a, from and.right this,
-              have H1 : succ a = b + succ n, from calc
+              have H₁ : succ a = b + succ n, from calc
                 succ a = succ (b + n) : Hn
                 ... = b + succ n : add_succ_right,
-              have H2 : b ≠ succ a, from
+              have H₂ : b ≠ succ a, from
                 suppose b = succ a,
                 have succ a + 0 = succ a + succ n, from calc
-                  succ a + 0 = b + succ n + 0 : H1
+                  succ a + 0 = b + succ n + 0 : H₁
                   ... = b + succ n : add_zero_right
                   ... = succ a + succ n : this,
                 have 0 = succ n, from add_cancel this,
                 absurd this⁻¹ A3,
-              have succ a ≥ b, from exists.intro (succ n) H1,
-              have succ a > b, from and.intro this H2,
+              have succ a ≥ b, from exists.intro (succ n) H₁,
+              have succ a > b, from and.intro this H₂,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
                 or.inr (or.inr this)))
 
@@ -430,6 +430,7 @@ namespace N
         (suppose ¬ a ≤ b,
           have ¬ ¬ a > b, from not.mto (iff.mpr le_iff_not_gt) this,
           show a > b, from not_not_elim this)
+          ¬.*→
 
     proposition ge_iff_not_lt : a ≥ b ↔ ¬ a < b :=
       @le_iff_not_gt b a
@@ -440,47 +441,47 @@ namespace N
 
   -- Proposition 2.2.14: Strong principle of induction
   section strong_induction
-    parameters {p : N → Prop} {n0 : N}
+    parameters {p : N → Prop} {n₀ : N}
 
-    private definition q (n : N) : Prop := ∀ m : N, m ≥ n0 ∧ m < n → p m
+    private definition q (n : N) : Prop := ∀ m : N, m ≥ n₀ ∧ m < n → p m
 
-    proposition strong_induction (SI : ∀ {n : N}, n ≥ n0 → q n → p n) :
-        ∀ n : N, n ≥ n0 → p n :=
+    proposition strong_induction (SI : ∀ {n : N}, n ≥ n₀ → q n → p n) :
+        ∀ n : N, n ≥ n₀ → p n :=
       take n,
-      have H : n ≥ n0 → q n, from
+      have H : n ≥ n₀ → q n, from
       proof induction_on n
-        (show 0 ≥ n0 → q 0, from
-          suppose 0 ≥ n0,
+        (show 0 ≥ n₀ → q 0, from
+          suppose 0 ≥ n₀,
           take m,
-          suppose m ≥ n0 ∧ m < 0,
+          suppose m ≥ n₀ ∧ m < 0,
           absurd (and.right this) not_lt_zero)
         (take n,
-          assume IH : n ≥ n0 → q n,
-          show succ n ≥ n0 → q (succ n), from
-            assume H1 : succ n ≥ n0,
+          assume IH : n ≥ n₀ → q n,
+          show succ n ≥ n₀ → q (succ n), from
+            assume H₁ : succ n ≥ n₀,
             take m,
-            suppose m ≥ n0 ∧ m < succ n,
-            have H2 : m ≥ n0, from and.left this,
-            have H3 : m < succ n, from and.right this,
+            suppose m ≥ n₀ ∧ m < succ n,
+            have H₂ : m ≥ n₀, from and.left this,
+            have H₃ : m < succ n, from and.right this,
             show p m, from by_cases
-              (suppose n0 = succ n,
-                have m ≥ succ n, from this ▸ H2,
-                have m < succ n ∧ m ≥ succ n, from and.intro H3 this,
+              (suppose n₀ = succ n,
+                have m ≥ succ n, from this ▸ H₂,
+                have m < succ n ∧ m ≥ succ n, from and.intro H₃ this,
                 absurd this not_lt_and_ge)
-              (suppose n0 ≠ succ n,
-                have succ n > n0, from and.intro H1 this,
-                have n ≥ n0, from iff.mp lt_succ_iff_le this,
+              (suppose n₀ ≠ succ n,
+                have succ n > n₀, from and.intro H₁ this,
+                have n ≥ n₀, from iff.mp lt_succ_iff_le this,
                 have q n, from IH this,
-                have p n, from SI `n ≥ n0` this,
+                have p n, from SI `n ≥ n₀` this,
                 show p m, from by_cases
                   (suppose n = m, this ▸ `p n`)
                   (suppose n ≠ m,
-                    have m ≤ n, from iff.mp lt_succ_iff_le H3,
+                    have m ≤ n, from iff.mp lt_succ_iff_le H₃,
                     have m < n, from and.intro this (ne.symm `n ≠ m`),
-                    have m ≥ n0 ∧ m < n, from and.intro H2 this,
+                    have m ≥ n₀ ∧ m < n, from and.intro H₂ this,
                     show p m, from `q n` m this)))
       qed,
-      suppose n ≥ n0,
+      suppose n ≥ n₀,
       show p n, from SI this (H this)
   end strong_induction
 
@@ -490,18 +491,18 @@ namespace N
     by_contradiction
       (suppose ¬ ∀ m : N, m ≤ n → p m,
         have ∃ m : N, ¬ (m ≤ n → p m), from dm_exists_not this,
-        obtain (m : N) (H1 : ¬ (m ≤ n → p m)), from this,
-        have m ≤ n ∧ ¬ p m, from and_not_of_not_implies H1,
-        obtain (d : N) (H2 : n = m + d), from and.left this,
-        have H3 : ¬ p m, from and.right this,
+        obtain (m : N) (H₁ : ¬ (m ≤ n → p m)), from this,
+        have m ≤ n ∧ ¬ p m, from and_not_of_not_implies H₁,
+        obtain (d : N) (H₂ : n = m + d), from and.left this,
+        have H₃ : ¬ p m, from and.right this,
         have ¬ p (m + d), from induction_on d
-          (show ¬ p (m + 0), from add_zero_right⁻¹ ▸ H3)
+          (show ¬ p (m + 0), from add_zero_right⁻¹ ▸ H₃)
           (take d,
             assume IH : ¬ p (m + d),
             have p (succ (m + d)) → p (m + d), from BI (m + d),
             have ¬ p (succ (m + d)), from not.mto this IH,
             show ¬ p (m + succ d), from add_succ_right⁻¹ ▸ this),
-        have ¬ p n, from H2⁻¹ ▸ this,
+        have ¬ p n, from H₂⁻¹ ▸ this,
         absurd Hp this)
 
   -- Definition 2.3.1: Multiplication of natural numbers
@@ -558,14 +559,14 @@ namespace N
   -- Lemma 2.3.3: Natural numbers have no zero divisors
   lemma mul_eq_zero {n m : N} : n * m = 0 ↔ n = 0 ∨ m = 0 :=
     iff.intro
-      (assume H1 : n * m = 0,
+      (assume H₁ : n * m = 0,
         show n = 0 ∨ m = 0, from by_cases
           (suppose n = 0, or.inl this)
           (suppose n ≠ 0,
-            obtain (n' : N) (H2 : succ n' = n), from pos_pred this,
+            obtain (n' : N) (H₂ : succ n' = n), from pos_pred this,
             have 0 = n' * m + m, from calc
-              0 = n * m : H1
-              ... = succ n' * m : H2
+              0 = n * m : H₁
+              ... = succ n' * m : H₂
               ... = n' * m + m : rfl,
             have m = 0, from and.right (add_eq_zero this⁻¹),
             show n = 0 ∨ m = 0, from or.inr this))
@@ -627,27 +628,27 @@ namespace N
           ... = succ a * (b * c) : rfl)
 
   -- Proposition 2.3.6: Multiplication preserves order
-  proposition mul_lt_mul {a b c : N} (H1 : a < b) (H2 : pos c) :
+  proposition mul_lt_mul {a b c : N} (H₁ : a < b) (H₂ : pos c) :
       a * c < b * c :=
-    obtain (d : N) (Hd : b = a + d ∧ pos d), from iff.mp lt_pos H1,
-    have H3 : b * c = a * c + d * c, from calc
+    obtain (d : N) (Hd : b = a + d ∧ pos d), from iff.mp lt_pos H₁,
+    have H₃ : b * c = a * c + d * c, from calc
       b * c = (a + d) * c : {and.left Hd}
       ... = a * c + d * c : right_distrib,
-    have pos d ∧ pos c, from and.intro (and.right Hd) H2,
+    have pos d ∧ pos c, from and.intro (and.right Hd) H₂,
     have pos (d * c), from iff.mpr mul_pos this,
-    have b * c = a * c + d * c ∧ pos (d * c), from and.intro H3 this,
+    have b * c = a * c + d * c ∧ pos (d * c), from and.intro H₃ this,
     show a * c < b * c, from iff.mpr lt_pos (exists.intro (d * c) this)
 
   -- Corollary 2.3.7: Cancellation law
-  corollary mul_cancel {a b c : N} (H1 : a * c = b * c) (H2 : pos c) : a = b :=
+  corollary mul_cancel {a b c : N} (H₁ : a * c = b * c) (H₂ : pos c) : a = b :=
     or.elim3 trichotomy
       (suppose a < b,
-        have a * c < b * c, from mul_lt_mul this H2,
-        absurd H1 (and.right this))
+        have a * c < b * c, from mul_lt_mul this H₂,
+        absurd H₁ (and.right this))
       (suppose a = b, this)
       (suppose a > b,
-        have a * c > b * c, from mul_lt_mul this H2,
-        absurd H1⁻¹ (and.right this))
+        have a * c > b * c, from mul_lt_mul this H₂,
+        absurd H₁⁻¹ (and.right this))
 
   -- Proposition 2.3.9: Euclidean algorithm
   proposition euclid_alg {n q : N} (H : pos q) :
