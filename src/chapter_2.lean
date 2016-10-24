@@ -426,11 +426,10 @@ namespace N
       iff.intro
         (suppose a > b,
           have ¬ ¬ a > b, from not_not_intro this,
-          show ¬ a ≤ b, from not.mto (iff.mp le_iff_not_gt) this)
+          show ¬ a ≤ b, from mt (iff.mp le_iff_not_gt) this)
         (suppose ¬ a ≤ b,
-          have ¬ ¬ a > b, from not.mto (iff.mpr le_iff_not_gt) this,
+          have ¬ ¬ a > b, from mt (iff.mpr le_iff_not_gt) this,
           show a > b, from not_not_elim this)
-          ¬.*→
 
     proposition ge_iff_not_lt : a ≥ b ↔ ¬ a < b :=
       @le_iff_not_gt b a
@@ -500,7 +499,7 @@ namespace N
           (take d,
             assume IH : ¬ p (m + d),
             have p (succ (m + d)) → p (m + d), from BI (m + d),
-            have ¬ p (succ (m + d)), from not.mto this IH,
+            have ¬ p (succ (m + d)), from mt this IH,
             show ¬ p (m + succ d), from add_succ_right⁻¹ ▸ this),
         have ¬ p n, from H₂⁻¹ ▸ this,
         absurd Hp this)
@@ -579,11 +578,11 @@ namespace N
   corollary mul_pos {n m : N} : pos (n * m) ↔ pos n ∧ pos m :=
     iff.intro
       (suppose pos (n * m),
-        have ¬ (n = 0 ∨ m = 0), from not.mto (iff.mpr mul_eq_zero) this,
+        have ¬ (n = 0 ∨ m = 0), from mt (iff.mpr mul_eq_zero) this,
         show pos n ∧ pos m, from dm_not_and_not this)
       (suppose pos n ∧ pos m,
         have ¬ (n = 0 ∨ m = 0), from dm_not_or this,
-        show pos (n * m), from not.mto (iff.mp mul_eq_zero) this)
+        show pos (n * m), from mt (iff.mp mul_eq_zero) this)
 
   -- Proposition 2.3.4: Distributive law
   section distributive_law
