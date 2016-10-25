@@ -27,10 +27,22 @@ namespace set
   abbreviation Set := set Object
 
   -- Axiom 3.1: Sets are objects
-  axiom A1 : ∀ (A : Set) (B : set Set), has_type Prop (A ∈ B)
+  definition sets_are_objects (A : Set) (B : set Set) : Prop := A ∈ B
 
   -- Definition 3.1.4: Equality of sets
-  axiom set_eq {A B : Set} : A = B ↔ ∀ x, x ∈ A ↔ x ∈ B
+  proposition set_eq {A B : Set} : A = B ↔ ∀ x, x ∈ A ↔ x ∈ B :=
+    iff.intro
+      (suppose A = B,
+        take x,
+        show x ∈ A ↔ x ∈ B, from iff.intro
+          (suppose x ∈ A, `A = B` ▸ this)
+          (suppose x ∈ B, `A = B`⁻¹ ▸ this))
+      (suppose ∀ x, x ∈ A ↔ x ∈ B,
+        have ∀ x, (x ∈ A) = (x ∈ B), from
+          take x,
+          have x ∈ A ↔ x ∈ B, from this x,
+          show (x ∈ A) = (x ∈ B), from eq.of_iff this,
+        show A = B, from funext this)
 
   -- Introduction and elimination rules
   section intro_elim
@@ -547,7 +559,14 @@ namespace set
   infixr ` => `:25 := Fun
 
   -- Definition 3.3.7: Equality of functions
-  axiom fun_eq {X Y : Set} {f g : X => Y} : f = g ↔ ∀ x : Mem X, f x = g x
+  proposition fun_eq {X Y : Set} {f g : X => Y} :
+      f = g ↔ ∀ x : Mem X, f x = g x :=
+    iff.intro
+      (suppose f = g,
+        take x : Mem X,
+        show f x = g x, from this ▸ rfl)
+      (suppose ∀ x : Mem X, f x = g x,
+        show f = g, from funext this)
 
   -- Introduction and elimination rules
   section intro_elim
