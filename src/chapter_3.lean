@@ -123,6 +123,8 @@ namespace set
       suppose a ∈ A,
       show a ∈ B, from H ▸ this
 
+    proposition subset_rfl : A ⊆ A := subset_of_eq rfl
+
     proposition subset_antisymm (H₁ : A ⊆ B) (H₂ : B ⊆ A) : A = B :=
       set_eq_intro H₁ H₂
 
@@ -552,7 +554,11 @@ namespace set
   -- Single choice for Mem
   noncomputable definition single_choice_mem {X : Set} (H : X ≠ ∅) : Mem X :=
     have ∃ a, a ∈ X, from single_choice H,
-    sigma.mk (some this) (some_spec this)
+    dpair (some this) (some_spec this)
+  
+  -- Show that two Mem pairs are equal
+  proposition mem_eq {X : Set} {x x' : Mem X} (H : x.1 = x'.1) : x = x' :=
+    sigma.eq H rfl
 
   -- Definition 3.3.1: Functions
   definition Fun (X Y : Set) : Type := Mem X → Mem Y
@@ -607,39 +613,66 @@ namespace set
   definition bijective {X Y : Set} (f : X => Y) : Prop :=
     injective f ∧ surjective f
 
+  -- Convenient way to use injectivity from a bijection
+  proposition bleft {X Y : Set} {f : X => Y} (H₁ : bijective f) {x x' : Mem X}
+      (H₂ : f x = f x') : x = x' :=
+    have injective f, from and.left H₁,
+    show x = x', from this H₂
+
   -- Inverse functions
   section inverse
     variables {X Y : Set}
 
-    definition left_inverse (f : X => Y) (g : Y => X) : Prop :=
-      g ∘ f = id
+    definition left_inverse (f : X => Y) (g : Y => X) : Prop := g ∘ f = id
+    infix ` <~ `:50 := left_inverse
 
-    definition inverse (f : X => Y) (g : Y => X) : Prop :=
-      ∀ (x : Mem X) (y : Mem Y), f x = y ↔ g y = x
-    infix ` ~~ `:50 := inverse
+    definition inverse (f : X => Y) (g : Y => X) : Prop := f <~ g ∧ g <~ f
+    infix ` <~> `:50 := inverse
 
-    definition invertible (f : X => Y) : Prop :=
-      ∃ g : Y => X, f ~~ g
+    definition invertible (f : X => Y) : Prop := ∃ g : Y => X, f <~> g
   end inverse
+
+  -- Uniqueness of inverse functions
+  section inverse_unique
+    parameters {X Y : Set} {f : X => Y}
+
+    proposition inverse_unique (H : invertible f) : ∃! g : Y => X, f <~> g :=
+      obtain (g : Y => X) (Hg : f <~> g), from H,
+      have ∀ h : Y => X, f <~> h → h = g, from
+        take h : Y => X,
+        assume Hh : f <~> h,
+        show h = g, from fun_eq_intro
+          (take y : Mem Y,
+            have f (g y) = y, from fun_eq_elim (and.right Hg) y,
+            have h (f (g y)) = h y, from this ▸ rfl,
+            have g y = h y, from fun_eq_elim (and.left Hh) (g y) ▸ this,
+            show h y = g y, from this⁻¹),
+      show ∃! g : Y => X, f <~> g, from exists_unique.intro g Hg this
+
+    noncomputable definition the_inverse (H : invertible f) : Y => X :=
+      the (inverse_unique H)
+
+    definition the_inverse_spec (H : invertible f) : f <~> (the_inverse H) :=
+      the_spec (inverse_unique H)
+
+    proposition eq_the_inverse {g : Y => X} (H : f <~> g) :
+        g = the_inverse (exists.intro g H) :=
+      eq_the (inverse_unique (exists.intro g H)) H
+  end inverse_unique
 
   -- Properties of inverse functions
   section inverse_properties
     variables {X Y : Set} {f : X => Y} {g : Y => X}
 
-    proposition inverse_symm (H : f ~~ g) : g ~~ f :=
-      take (y : Mem Y) (x : Mem X),
-      show g y = x ↔ f x = y, from iff.symm (H x y)
+    -- Symmetry
+    proposition inverse_symm (H : f <~> g) : g <~> f :=
+      and.swap H
 
-    proposition inverse_iff_both :
-        f ~~ g ↔ left_inverse f g ∧ left_inverse g f :=
+    -- Alternative definition of inverse functions
+    proposition inverse_iff_alternative :
+        f <~> g ↔ ∀ (x : Mem X) (y : Mem Y), f x = y ↔ g y = x :=
       iff.intro
-        (assume H : f ~~ g,
-          have HL : g ∘ f = id, from fun_eq_intro
-            (take x : Mem X, iff.mp (H x (f x)) rfl),
-          have HR : f ∘ g = id, from fun_eq_intro
-            (take y : Mem Y, iff.mpr (H (g y) y) rfl),
-          show left_inverse f g ∧ left_inverse g f, from and.intro HL HR)
-        (suppose H : left_inverse f g ∧ left_inverse g f,
+        (assume H : f <~> g,
           take (x : Mem X) (y : Mem Y),
           show f x = y ↔ g y = x, from iff.intro
             (suppose f x = y,
@@ -650,6 +683,12 @@ namespace set
               show f x = y, from calc
                 f x = f (g y) : {this⁻¹}
                 ... = y : fun_eq_elim (and.right H) y))
+        (assume H : ∀ (x : Mem X) (y : Mem Y), f x = y ↔ g y = x,
+          have HL : f <~ g, from fun_eq_intro
+            (take x : Mem X, iff.mp (H x (f x)) rfl),
+          have HR : g <~ f, from fun_eq_intro
+            (take y : Mem Y, iff.mpr (H (g y) y) rfl),
+          show f <~> g, from and.intro HL HR)
   end inverse_properties
 
   -- More properties of inverse functions
@@ -667,73 +706,71 @@ namespace set
         exists_unique_of_exists_of_unique Hx this
 
     proposition left_of_nonempty_of_injective (Hn : X ≠ ∅) (Hi : injective f) :
-        ∃ g : Y => X, left_inverse f g :=
+        ∃ g : Y => X, f <~ g :=
       let g (y : Mem Y) : Mem X :=
         if H : ∃! x : Mem X, f x = y
           then the H
           else single_choice_mem Hn
       in
-      have g ∘ f = id, from fun_eq_intro
+      have f <~ g, from fun_eq_intro
         (take a : Mem X,
           have ∃ x : Mem X, f x = f a, from exists.intro a rfl,
           have H : ∃! x : Mem X, f x = f a, from unique_of_injective Hi this,
           show g (f a) = a, from calc
             g (f a) = the H : dif_pos H
             ... = a : eq_the H rfl),
-      show ∃ g : Y => X, left_inverse f g, from exists.intro g this
+      show ∃ g : Y => X, f <~ g, from exists.intro g this
 
-    proposition injective_of_left (H : ∃ g : Y => X, left_inverse f g) :
-        injective f :=
-      obtain (g : Y => X) (Hg : g ∘ f = id), from H,
+    proposition injective_of_left (H : ∃ g : Y => X, f <~ g) : injective f :=
+      obtain (g : Y => X) (HL : f <~ g), from H,
       show injective f, from
         take x x' : Mem X,
         suppose f x = f x',
         show x = x', from calc
-          x = g (f x) : fun_eq_elim Hg x
+          x = g (f x) : fun_eq_elim HL x
           ... = g (f x') : {this}
-          ... = x' : fun_eq_elim Hg x'
+          ... = x' : fun_eq_elim HL x'
 
     proposition right_of_surjective (Hs : surjective f) :
-        ∃ g : Y => X, left_inverse g f :=
+        ∃ g : Y => X, g <~ f :=
       let g (y : Mem Y) : Mem X := some (Hs y)
       in
-      have f ∘ g = id, from fun_eq_intro
+      have g <~ f, from fun_eq_intro
         (take y : Mem Y,
           show f (g y) = y, from calc
-          f (g y) = f (some (Hs y)) : rfl
-          ... = y : some_spec (Hs y)),
-      show ∃ g : Y => X, left_inverse g f, from exists.intro g this
+            f (g y) = f (some (Hs y)) : rfl
+            ... = y : some_spec (Hs y)),
+      show ∃ g : Y => X, g <~ f, from exists.intro g this
 
-    proposition surjective_of_right (H : ∃ g : Y => X, left_inverse g f) :
-        surjective f :=
-      obtain (g : Y => X) (Hg : f ∘ g = id), from H,
+    proposition surjective_of_right (H : ∃ g : Y => X, g <~ f) : surjective f :=
+      obtain (g : Y => X) (HR : g <~ f), from H,
       show surjective f, from
         take y : Mem Y,
-        have f (g y) = y, from fun_eq_elim Hg y,
+        have f (g y) = y, from fun_eq_elim HR y,
         show ∃ x : Mem X, f x = y, from exists.intro (g y) this
 
     private lemma empty_invertible (Hn : X = ∅) (Hs : surjective f) :
         invertible f :=
       let g (y : Mem Y) : Mem X := some (Hs y)
       in
-      have f ~~ g, from
-        take (x : Mem X) (y : Mem Y),
-        show f x = y ↔ g y = x, from absurd (Hn ▸ x.2) not_in_empty,
+      have HL : f <~ g, from fun_eq_intro
+        (take x : Mem X, absurd (Hn ▸ x.2) not_in_empty),
+      have HR : g <~ f, from fun_eq_intro
+        (take y : Mem Y, absurd (Hn ▸ (g y).2) not_in_empty),
+      have f <~> g, from and.intro HL HR,
       show invertible f, from exists.intro g this
 
-    private lemma left_eq_right {g g' : Y => X} (Hf : bijective f)
-        (HL : left_inverse f g) (HR : left_inverse g' f) : g = g' :=
-      have Hi : injective f, from and.left Hf,
-      have Hs : surjective f, from and.right Hf,
-      show g = g', from fun_eq_intro
+    private lemma left_eq_right {g g' : Y => X} (Hf : bijective f) (HL : f <~ g)
+        (HR : g' <~ f) : g = g' :=
+      fun_eq_intro
         (take y : Mem Y,
-          obtain (x : Mem X) (Hx : f x = y), from Hs y,
+          obtain (x : Mem X) (Hx : f x = y), from and.right Hf y,
           have f (g y) = f (g' y), from calc
             f (g y) = f (g (f x)) : {Hx⁻¹}
             ... = f x : {fun_eq_elim HL x}
             ... = f (g' (f x)) : fun_eq_elim HR (f x)
             ... = f (g' y) : {Hx},
-          show g y = g' y, from Hi this)
+          show g y = g' y, from bleft Hf this)
 
     proposition bijective_iff_invertible : bijective f ↔ invertible f :=
       iff.intro
@@ -742,25 +779,29 @@ namespace set
             (suppose X = ∅,
               empty_invertible this (and.right Hf))
             (suppose X ≠ ∅,
-              obtain (g : Y => X) (HL : left_inverse f g), from
+              obtain (g : Y => X) (HL : f <~ g), from
                 left_of_nonempty_of_injective this (and.left Hf),
-              obtain (g' : Y => X) (HR : left_inverse g' f), from
+              obtain (g' : Y => X) (HR : g' <~ f), from
                 right_of_surjective (and.right Hf),
               have g = g', from left_eq_right Hf HL HR,
-              have left_inverse g f, from this⁻¹ ▸ HR,
-              have f ~~ g, from iff.mpr inverse_iff_both (and.intro HL this),
+              have g <~ f, from this⁻¹ ▸ HR,
+              have f <~> g, from (and.intro HL this),
               show invertible f, from exists.intro g this))
         (suppose invertible f,
-          obtain (g : Y => X) (H : f ~~ g), from this,
-          have left_inverse f g ∧ left_inverse g f, from
-            iff.mp inverse_iff_both H,
-          have HL : ∃ g : Y => X, left_inverse f g, from
-            exists.intro g (and.left this),
-          have HR : ∃ g : Y => X, left_inverse g f, from
-            exists.intro g (and.right this),
+          obtain (g : Y => X) (H : f <~> g), from this,
+          have HL : ∃ g : Y => X, f <~ g, from exists.intro g (and.left H),
+          have HR : ∃ g : Y => X, g <~ f, from exists.intro g (and.right H),
           have Hi : injective f, from injective_of_left HL,
           have Hs : surjective f, from surjective_of_right HR,
           show bijective f, from and.intro Hi Hs)
+
+    proposition invertible_of_bijective [coercion] (H : bijective f) :
+        invertible f :=
+      iff.mp bijective_iff_invertible H
+
+    proposition bijective_of_invertible [coercion] (H : invertible f) :
+        bijective f :=
+      iff.mpr bijective_iff_invertible H
   end more_inverse_properties
 
   -- Exercise 3.3.1
@@ -875,5 +916,108 @@ namespace set
       take z : Mem Z,
       obtain (x : Mem X) (Hx : g (f x) = z), from H z,
       show ∃ y : Mem Y, g y = z, from exists.intro (f x) Hx
+  end
+
+  -- Exercise 3.3.6
+  section
+    parameters {X Y : Set} {f : X => Y}
+    hypothesis {Hf : bijective f}
+
+    private noncomputable definition fi : Y => X := the_inverse Hf
+    private proposition Hfi : f <~> fi := the_inverse_spec Hf
+
+    example (x : Mem X) : fi (f x) = x :=
+      have f <~ fi, from and.left Hfi,
+      show fi (f x) = x, from fun_eq_elim this x
+
+    example (y : Mem Y) : f (fi y) = y :=
+      have fi <~ f, from and.right Hfi,
+      show f (fi y) = y, from fun_eq_elim this y
+
+    example : invertible fi :=
+      have fi <~> f, from inverse_symm Hfi,
+      show invertible fi, from exists.intro f this
+  end
+
+  -- Exercise 3.3.7
+  section
+    parameters {X Y Z : Set} {f : X => Y} {g : Y => Z}
+    hypothesis {Hf : bijective f}
+    hypothesis {Hg : bijective g}
+
+    example : bijective (g ∘ f) :=
+      have Hi : injective (g ∘ f), from
+        take x x' : Mem X,
+        suppose g (f x) = g (f x'),
+        have f x = f x', from bleft Hg this,
+        show x = x', from bleft Hf this,
+      have Hs : surjective (g ∘ f), from
+        take z : Mem Z,
+        obtain (y : Mem Y) (Hy : g y = z), from and.right Hg z,
+        obtain (x : Mem X) (Hx : f x = y), from and.right Hf y,
+        show ∃ x : Mem X, g (f x) = z, from exists.intro x (Hx⁻¹ ▸ Hy),
+      show bijective (g ∘ f), from and.intro Hi Hs
+
+    private noncomputable definition fi : Y => X := the_inverse Hf
+    private noncomputable definition gi : Z => Y := the_inverse Hg
+    private proposition Hfi : f <~> fi := the_inverse_spec Hf
+    private proposition Hgi : g <~> gi := the_inverse_spec Hg
+
+    example : g ∘ f <~> fi ∘ gi :=
+      have HL : g ∘ f <~ fi ∘ gi, from fun_eq_intro
+        (take x : Mem X,
+          show fi (gi (g (f x))) = x, from calc
+            fi (gi (g (f x))) = fi (f x) : {fun_eq_elim (and.left Hgi) (f x)}
+            ... = x : fun_eq_elim (and.left Hfi) x),
+      have HR : fi ∘ gi <~ g ∘ f, from fun_eq_intro
+        (take z : Mem Z,
+          show g (f (fi (gi z))) = z, from calc
+            g (f (fi (gi z))) = g (gi z) : {fun_eq_elim (and.right Hfi) (gi z)}
+            ... = z : fun_eq_elim (and.right Hgi) z),
+      show g ∘ f <~> fi ∘ gi, from and.intro HL HR
+  end
+
+  -- Exercise 3.3.8
+  section
+    definition inclusion_map (X Y : Set) (H : X ⊆ Y) : X => Y :=
+      λ x : Mem X, dpair x.1 (H x.2)
+
+    local abbreviation ι := @inclusion_map
+
+    variables {A B X Y Z : Set}
+
+    example (H₁ : X ⊆ Y) (H₂ : Y ⊆ Z) :
+        ι Y Z H₂ ∘ ι X Y H₁ = ι X Z (subset_trans H₁ H₂) :=
+      let
+        f : X => Y := ι X Y H₁,
+        g : Y => Z := ι Y Z H₂,
+        h : X => Z := ι X Z (subset_trans H₁ H₂)
+      in
+      show g ∘ f = h, from fun_eq_intro
+        (take x : Mem X,
+          have HY : x.1 ∈ Y, from H₁ x.2,
+          have HZ : x.1 ∈ Z, from H₂ HY,
+          show g (f x) = h x, from calc
+            g (f x) = g (dpair x.1 HY) : rfl
+            ... = dpair x.1 HZ : rfl
+            ... = h x : rfl)
+
+    example (f : A => B) : f = f ∘ ι A A subset_rfl :=
+      let i : A => A := ι A A subset_rfl
+      in
+      fun_eq_intro
+        (take a : Mem A,
+          show f a = f (i a), from calc
+            f a = f (dpair a.1 a.2) : {mem_eq rfl}
+            ... = f (i a) : rfl)
+
+    example (f : A => B) : f = ι B B subset_rfl ∘ f :=
+      let i : B => B := ι B B subset_rfl
+      in
+      fun_eq_intro
+        (take a : Mem A,
+          show f a = i (f a), from calc
+            f a = dpair (f a).1 (f a).2 : mem_eq rfl
+            ... = i (f a) : rfl)
   end
 end set
