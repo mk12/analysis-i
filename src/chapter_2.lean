@@ -51,7 +51,7 @@ namespace N
   lemma add_zero_right {n : N} : n + 0 = n :=
     induction_on n
       (show 0 + 0 = 0, from rfl)
-      (take n,
+      (take n : N,
         assume IH : n + 0 = n,
         show succ n + 0 = succ n, from calc
           succ n + 0 = succ (n + 0) : rfl
@@ -63,7 +63,7 @@ namespace N
       (show 0 + succ m = succ (0 + m), from calc
         0 + succ m = succ m : rfl
         ... = succ (0 + m) : rfl)
-      (take n,
+      (take n : N,
         assume IH : n + succ m = succ (n + m),
         show succ n + succ m = succ (succ n + m), from calc
           succ n + succ m = succ (n + succ m) : rfl
@@ -76,7 +76,7 @@ namespace N
       (show 0 + m = m + 0, from calc
         0 + m = m : rfl
         ... = m + 0 : add_zero_right)
-      (take n,
+      (take n : N,
         assume IH : n + m = m + n,
         show succ n + m = m + succ n, from calc
           succ n + m = succ (n + m) : rfl
@@ -89,7 +89,7 @@ namespace N
       (show (0 + b) + c = 0 + (b + c), from calc
         (0 + b) + c = b + c : rfl
         ... = 0 + (b + c) : rfl)
-      (take a,
+      (take a : N,
         assume IH : (a + b) + c = a + (b + c),
         show (succ a + b) + c = succ a + (b + c), from calc
           (succ a + b) + c = succ (a + b) + c : rfl
@@ -106,7 +106,7 @@ namespace N
           b = 0 + b : rfl
           ... = 0 + c : this
           ... = c : rfl)
-      (take a,
+      (take a : N,
         assume IH : a + b = a + c → b = c,
         show succ a + b = succ a + c → b = c, from
           suppose succ a + b = succ a + c,
@@ -125,7 +125,7 @@ namespace N
     induction_on b
       (let E := calc a = a + 0 : add_zero_right
         in show pos (a + 0), from E ▸ H)
-      (take b,
+      (take b : N,
         suppose pos (a + b),
         have pos (succ (a + b)), from zero_ne_succ,
         let E := calc succ (a + b) = a + succ b : add_succ_right
@@ -151,14 +151,14 @@ namespace N
       (show pos 0 → ∃ b : N, succ b = 0, from
         suppose pos 0,
         absurd rfl this)
-      (take a,
+      (take a : N,
         assume IH : pos a → ∃ b : N, succ b = a,
         show pos (succ a) → ∃ b : N, succ b = succ a, from
           suppose pos (succ a),
           induction_on a
             (show ∃ b : N, succ b = succ 0, from
               exists.intro 0 rfl)
-            (take a',
+            (take a' : N,
               suppose ∃ b : N, succ b = succ a',
               obtain (b : N) (H : succ b = succ a'), from this,
               show ∃ b : N, succ b = succ (succ a'), from
@@ -353,7 +353,7 @@ namespace N
           by_cases
             (suppose 0 = b, or.inr (or.inl this))
             (suppose 0 ≠ b, or.inl (and.intro `0 ≤ b` this)))
-        (take a,
+        (take a : N,
           assume IH : a < b ∨ a = b ∨ a > b,
           show succ a < b ∨ succ a = b ∨ succ a > b, from or.elim3 IH
             (suppose a < b,
@@ -453,23 +453,24 @@ namespace N
   section strong_induction
     parameters {p : N → Prop} {n₀ : N}
 
-    private definition q (n : N) : Prop := ∀ m : N, m ≥ n₀ ∧ m < n → p m
+    private definition q (n : N) : Prop :=
+      ∀ m : N, m ≥ n₀ ∧ m < n → p m
 
     proposition strong_induction (SI : ∀ {n : N}, n ≥ n₀ → q n → p n) :
         ∀ n : N, n ≥ n₀ → p n :=
-      take n,
+      take n : N,
       have H : n ≥ n₀ → q n, from
       proof induction_on n
         (show 0 ≥ n₀ → q 0, from
           suppose 0 ≥ n₀,
-          take m,
+          take m : N,
           suppose m ≥ n₀ ∧ m < 0,
           absurd (and.right this) not_lt_zero)
-        (take n,
+        (take n : N,
           assume IH : n ≥ n₀ → q n,
           show succ n ≥ n₀ → q (succ n), from
             assume H₁ : succ n ≥ n₀,
-            take m,
+            take m : N,
             suppose m ≥ n₀ ∧ m < succ n,
             have H₂ : m ≥ n₀, from and.left this,
             have H₃ : m < succ n, from and.right this,
@@ -507,7 +508,7 @@ namespace N
         have H₃ : ¬ p m, from and.right this,
         have ¬ p (m + d), from induction_on d
           (show ¬ p (m + 0), from add_zero_right⁻¹ ▸ H₃)
-          (take d,
+          (take d : N,
             assume IH : ¬ p (m + d),
             have p (succ (m + d)) → p (m + d), from BI (m + d),
             have ¬ p (succ (m + d)), from mt this IH,
@@ -527,7 +528,7 @@ namespace N
   lemma mul_zero_right {n : N} : n * 0 = 0 :=
     induction_on n
       (show 0 * 0 = 0, from rfl)
-      (take n,
+      (take n : N,
         assume IH : n * 0 = 0,
         show succ n * 0 = 0, from calc
           succ n * 0 = n * 0 + 0 : rfl
@@ -541,7 +542,7 @@ namespace N
         0 * succ m = 0 : rfl
         ... = 0 + 0 : rfl
         ... = 0 * m + 0 : rfl)
-      (take n,
+      (take n : N,
         assume IH : n * succ m = n * m + n,
         show succ n * succ m = succ n * m + succ n, from calc
           succ n * succ m = n * succ m + succ m : rfl
@@ -559,7 +560,7 @@ namespace N
       (show 0 * m = m * 0, from calc
         0 * m = 0 : rfl
         ... = m * 0 : mul_zero_right)
-      (take n,
+      (take n : N,
         assume IH : n * m = m * n,
         show succ n * m = m * succ n, from calc
           succ n * m = n * m + m : rfl
@@ -605,7 +606,7 @@ namespace N
           a * (b + 0) = a * b : add_zero_right
           ... = a * b + 0 : add_zero_right
           ... = a * b + a * 0 : mul_zero_right)
-        (take c,
+        (take c : N,
           assume IH : a * (b + c) = a * b + a * c,
           show a * (b + succ c) = a * b + a * succ c, from calc
             a * (b + succ c) = a * succ (b + c) : add_succ_right
@@ -629,7 +630,7 @@ namespace N
         (0 * b) * c = 0 * c : rfl
         ... = 0 : rfl
         ... = 0 * (b * c) : rfl)
-      (take a,
+      (take a : N,
         assume IH : (a * b) * c = a * (b * c),
         show (succ a * b) * c = succ a * (b * c), from calc
           (succ a * b) * c = (a * b + b) * c : rfl
@@ -672,7 +673,7 @@ namespace N
           ... = 0 * q + 0 : add_zero_right,
         have 0 < q ∧ 0 = 0 * q + 0, from and.intro `0 < q` this,
         exists.intro 0 (exists.intro 0 this))
-      (take n,
+      (take n : N,
         suppose ∃ m r : N, r < q ∧ n = m * q + r,
         obtain (m r : N) (IH : r < q ∧ n = m * q + r), from this,
         show ∃ m r : N, r < q ∧ succ n = m * q + r, from by_cases
@@ -701,7 +702,7 @@ namespace N
     recursive_def m 1 (λ x n_pow_x : N, n_pow_x * n)
 
   -- Can't use ^ because has_pow_nat requires nat
-  infixr `**`:80 := pow
+  infixr ` ** `:80 := pow
 
   -- Exercise 2.3.4: Square of binomial
   example (a b : N) : (a + b)**2 = a**2 + 2 * a * b + b**2 :=
