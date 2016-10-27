@@ -1,26 +1,37 @@
 -- Copyright 2016 Mitchell Kember. Subject to the MIT License.
 -- Formalization of Analysis I: Chapter 2
 
-import algebra.group_power logic.connectives logic.identities logic.quantifiers
+import logic.identities
 import .common
 
 open classical eq.ops
 
+-- The natural numbers
 inductive N : Type :=
   | zero : N
   | succ : N → N
 
 namespace N
-  -- Peano axioms
-  axiom A1 : has_type N zero
-  axiom A2 : ∀ n : N, has_type N (succ n)
-  axiom A3 : ∀ {n : N}, succ n ≠ zero
-  axiom A4 : ∀ {n m : N}, succ n = succ m → n = m
-  axiom A5 : ∀ {p : N → Prop},
-    p zero → (∀ n : N, p n → p (succ n)) → ∀ n : N, p n
+  -- Axiom 2.1: Zero is a natural number
+  example : N := zero
 
-  -- More convenient forms of A5
-  local abbreviation induction := @N.rec
+  -- Axiom 2.2: Every natural number has a successor
+  example (n : N) : N := succ n
+
+  -- Axiom 2.3: Zero is not a successor of any natural number
+  theorem zero_ne_succ {n : N} : succ n ≠ zero :=
+    suppose succ n = zero, N.no_confusion this
+
+  -- Axiom 2.4: Different natural numbers have different successors
+  theorem succ_inj {n m : N} (H : succ n = succ m) : n = m :=
+    N.no_confusion H id
+
+  -- Axiom 2.5: Principle of mathematical induction
+  theorem induction {p : N → Prop} (BC : p zero)
+      (IH : ∀ n : N, p n → p (succ n)) : ∀ n : N, p n :=
+    N.rec BC IH
+
+  -- More convenient form of Axiom 2.5
   local abbreviation induction_on := @N.induction_on
 
   -- Proposition 2.1.16: Recursive definitions
@@ -103,7 +114,7 @@ namespace N
             succ (a + b) = succ a + b : rfl
             ... = succ a + c : this
             ... = succ (a + c) : rfl,
-          have a + b = a + c, from A4 this,
+          have a + b = a + c, from succ_inj this,
           show b = c, from IH this)
 
   -- Definition 2.2.7: Positive natural numbers
@@ -116,7 +127,7 @@ namespace N
         in show pos (a + 0), from E ▸ H)
       (take b,
         suppose pos (a + b),
-        have pos (succ (a + b)), from A3,
+        have pos (succ (a + b)), from zero_ne_succ,
         let E := calc succ (a + b) = a + succ b : add_succ_right
         in show pos (a + succ b), from E ▸ this)
 
@@ -266,7 +277,7 @@ namespace N
               ... = succ (a + n) : rfl
               ... = a + succ n : add_succ_right,
             have 0 = succ n, from add_cancel this,
-            absurd this⁻¹ A3,
+            absurd this⁻¹ zero_ne_succ,
           show a < b, from and.intro `a ≤ b` `a ≠ b`)
 
     -- Extra properties
@@ -280,7 +291,7 @@ namespace N
             succ b = a + d : and.left H₁
             ... = a + succ d' : H₂
             ... = succ (a + d') : add_succ_right,
-          have b = a + d', from A4 this,
+          have b = a + d', from succ_inj this,
           show a ≤ b, from exists.intro d' this)
         (suppose a ≤ b,
           obtain (n : N) (H : b = a + n), from this,
@@ -297,7 +308,7 @@ namespace N
               ... = succ (b + n) : rfl
               ... = b + succ n : add_succ_right,
             have 0 = succ n, from add_cancel this,
-            absurd this⁻¹ A3,
+            absurd this⁻¹ zero_ne_succ,
           show a < succ b, from and.intro `a ≤ succ b` `a ≠ succ b`)
 
     proposition not_lt_and_ge : ¬ (a < b ∧ a ≥ b) :=
@@ -363,7 +374,7 @@ namespace N
                   ... = succ a : this
                   ... = b + succ 0 : H₁,
                 have 0 = succ 0, from add_cancel this,
-                absurd this⁻¹ A3,
+                absurd this⁻¹ zero_ne_succ,
               have succ a ≥ b, from exists.intro (succ 0) H₁,
               have succ a > b, from and.intro this H₂,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
@@ -381,7 +392,7 @@ namespace N
                   ... = b + succ n : add_zero_right
                   ... = succ a + succ n : this,
                 have 0 = succ n, from add_cancel this,
-                absurd this⁻¹ A3,
+                absurd this⁻¹ zero_ne_succ,
               have succ a ≥ b, from exists.intro (succ n) H₁,
               have succ a > b, from and.intro this H₂,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
