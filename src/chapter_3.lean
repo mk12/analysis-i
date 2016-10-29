@@ -27,7 +27,7 @@ namespace set
   abbreviation Set := set Object
 
   -- Axiom 3.1: Sets are objects
-  definition sets_are_objects (A : Set) (B : set Set) : Prop := A ∈ B
+  example (A : Set) (B : set Set) : Prop := A ∈ B
 
   -- Definition 3.1.4: Equality of sets
   proposition set_eq {A B : Set} : A = B ↔ ∀ x, x ∈ A ↔ x ∈ B :=
@@ -390,12 +390,12 @@ namespace set
   section
     variables {A B C : Set}
 
-    example : A ∩ B ⊆ A :=
+    proposition inter_subset_left : A ∩ B ⊆ A :=
       take x,
       suppose x ∈ A ∩ B,
       show x ∈ A, from and.left this
 
-    example : A ∩ B ⊆ B :=
+    proposition inter_subset_right : A ∩ B ⊆ B :=
       take x,
       suppose x ∈ A ∩ B,
       show x ∈ B, from and.right this
@@ -422,12 +422,12 @@ namespace set
             show x ∈ B, from and.right this,
           show C ⊆ A ∧ C ⊆ B, from and.intro `C ⊆ A` `C ⊆ B`)
 
-    example : A ⊆ A ∪ B :=
+    proposition subset_union_left : A ⊆ A ∪ B :=
       take x,
       suppose x ∈ A,
       show x ∈ A ∪ B, from or.inl this
 
-    example : B ⊆ A ∪ B :=
+    proposition subset_union_right : B ⊆ A ∪ B :=
       take x,
       suppose x ∈ B,
       show x ∈ A ∪ B, from or.inr this
@@ -548,17 +548,40 @@ namespace set
               (suppose x ∉ A, or.inr (and.intro `x ∈ B` `x ∉ A`))))
   end
 
+  -- Some miscellaneous set properties
+  section misc
+    variables {x : Object} {A B : Set}
+
+    proposition in_union_left (H₁ : x ∈ A ∪ B) (H₂ : x ∉ B) : x ∈ A :=
+      or.elim H₁ id (suppose x ∈ B, absurd this H₂)
+
+    proposition in_union_right (H₁ : x ∈ A ∪ B) (H₂ : x ∉ A) : x ∈ B :=
+      in_union_left (union_comm ▸ H₁) H₂
+
+    proposition not_in_disjoint_left (H₁ : A ∩ B = ∅) (H₂ : x ∈ B) : x ∉ A :=
+      suppose x ∈ A,
+      have x ∈ A ∩ B, from and.intro this H₂,
+      absurd (H₁ ▸ this) not_in_empty
+
+    proposition not_in_disjoint_right (H₁ : A ∩ B = ∅) (H₂ : x ∈ A) : x ∉ B :=
+      not_in_disjoint_left (inter_comm ▸ H₁) H₂
+  end misc
+
   -- Convert Set to Type using dependent pairs
   definition Mem (X : Set) : Type := Σ x, x ∈ X
+
+  -- Constructor for Mem
+  definition Mem.mk {X : Set} {x : Object} (H : x ∈ X) : Mem X :=
+    sigma.mk x H
+
+  -- Eta expansion and reduction
+  definition eta_exp {X : Set} (x : Mem X) : x = Mem.mk x.2 := sigma.eq rfl rfl
+  definition eta_red {X : Set} (x : Mem X) : Mem.mk x.2 = x := sigma.eq rfl rfl
 
   -- Single choice for Mem
   noncomputable definition single_choice_mem {X : Set} (H : X ≠ ∅) : Mem X :=
     have ∃ a, a ∈ X, from single_choice H,
-    dpair (some this) (some_spec this)
-  
-  -- Show that two Mem pairs are equal
-  proposition mem_eq {X : Set} {x x' : Mem X} (H : x.1 = x'.1) : x = x' :=
-    sigma.eq H rfl
+    Mem.mk (some_spec this)
 
   -- Definition 3.3.1: Functions
   definition Fun (X Y : Set) : Type := Mem X → Mem Y
@@ -733,8 +756,7 @@ namespace set
 
     proposition right_of_surjective (Hs : surjective f) :
         ∃ g : Y => X, g <~ f :=
-      let g (y : Mem Y) : Mem X := some (Hs y)
-      in
+      let g (y : Mem Y) : Mem X := some (Hs y) in
       have g <~ f, from fun_eq_intro
         (take y : Mem Y,
           show f (g y) = y, from calc
@@ -751,8 +773,7 @@ namespace set
 
     private lemma empty_invertible (Hn : X = ∅) (Hs : surjective f) :
         invertible f :=
-      let g (y : Mem Y) : Mem X := some (Hs y)
-      in
+      let g (y : Mem Y) : Mem X := some (Hs y) in
       have HL : f <~ g, from fun_eq_intro
         (take x : Mem X, absurd (Hn ▸ x.2) not_in_empty),
       have HR : g <~ f, from fun_eq_intro
@@ -857,31 +878,31 @@ namespace set
     definition empty_fun : ∅ => X :=
       λ e : Mem ∅, absurd e.2 not_in_empty
 
-    proposition empty_fun_inj : injective empty_fun :=
-      take e e' : Mem ∅,
-      show empty_fun e = empty_fun e' → e = e', from absurd e.2 not_in_empty
+    local abbreviation f := @empty_fun
 
-    proposition empty_fun_surj : surjective empty_fun ↔ X = ∅ :=
+    proposition empty_fun_inj : injective f :=
+      take e e' : Mem ∅,
+      show f e = f e' → e = e', from absurd e.2 not_in_empty
+
+    proposition empty_fun_surj : surjective f ↔ X = ∅ :=
       iff.intro
-        (assume H : surjective empty_fun,
+        (assume H : surjective f,
           show X = ∅, from by_contradiction
             (suppose X ≠ ∅,
-              have x : Mem X, from single_choice_mem this,
-              obtain (e : Mem ∅) He, from H x,
+              obtain (e : Mem ∅) He, from H (single_choice_mem this),
               absurd e.2 not_in_empty))
         (suppose X = ∅,
           take x : Mem X,
-          have x.1 ∈ ∅, from this ▸ x.2,
-          show ∃ e : Mem ∅, empty_fun e = x, from absurd this not_in_empty)
+          show ∃ e : Mem ∅, f e = x, from absurd (this ▸ x.2) not_in_empty)
 
-    proposition empty_fun_bij : bijective empty_fun ↔ X = ∅ :=
+    proposition empty_fun_bij : bijective f ↔ X = ∅ :=
       iff.intro
-        (suppose bijective empty_fun,
-          have surjective empty_fun, from and.right this,
+        (suppose bijective f,
+          have surjective f, from and.right this,
           show X = ∅, from iff.mp empty_fun_surj this)
         (suppose X = ∅,
-          have surjective empty_fun, from iff.mpr empty_fun_surj this,
-          show bijective empty_fun, from and.intro empty_fun_inj this)
+          have surjective f, from iff.mpr empty_fun_surj this,
+          show bijective f, from and.intro empty_fun_inj this)
   end empty_function
 
   -- Exercise 3.3.4
@@ -921,7 +942,7 @@ namespace set
   -- Exercise 3.3.6
   section
     parameters {X Y : Set} {f : X => Y}
-    hypothesis {Hf : bijective f}
+    hypothesis Hf : bijective f
 
     private noncomputable definition fi : Y => X := the_inverse Hf
     private proposition Hfi : f <~> fi := the_inverse_spec Hf
@@ -942,8 +963,8 @@ namespace set
   -- Exercise 3.3.7
   section
     parameters {X Y Z : Set} {f : X => Y} {g : Y => Z}
-    hypothesis {Hf : bijective f}
-    hypothesis {Hg : bijective g}
+    hypothesis Hf : bijective f
+    hypothesis Hg : bijective g
 
     example : bijective (g ∘ f) :=
       have Hi : injective (g ∘ f), from
@@ -978,46 +999,121 @@ namespace set
   end
 
   -- Exercise 3.3.8
-  section
+  section inclusion
     definition inclusion_map (X Y : Set) (H : X ⊆ Y) : X => Y :=
-      λ x : Mem X, dpair x.1 (H x.2)
+      λ x : Mem X, Mem.mk (H x.2)
 
     local abbreviation ι := @inclusion_map
 
-    variables {A B X Y Z : Set}
+    section part_1
+      parameters {X Y Z : Set}
+      hypothesis H₁ : X ⊆ Y
+      hypothesis H₂ : Y ⊆ Z
 
-    example (H₁ : X ⊆ Y) (H₂ : Y ⊆ Z) :
-        ι Y Z H₂ ∘ ι X Y H₁ = ι X Z (subset_trans H₁ H₂) :=
-      let
-        f : X => Y := ι X Y H₁,
-        g : Y => Z := ι Y Z H₂,
-        h : X => Z := ι X Z (subset_trans H₁ H₂)
-      in
-      show g ∘ f = h, from fun_eq_intro
-        (take x : Mem X,
-          have HY : x.1 ∈ Y, from H₁ x.2,
-          have HZ : x.1 ∈ Z, from H₂ HY,
-          show g (f x) = h x, from calc
-            g (f x) = g (dpair x.1 HY) : rfl
-            ... = dpair x.1 HZ : rfl
-            ... = h x : rfl)
+      private definition ιXY : X => Y := ι X Y H₁
+      private definition ιYZ : Y => Z := ι Y Z H₂
+      private definition ιXZ : X => Z := ι X Z (subset_trans H₁ H₂)
 
-    example (f : A => B) : f = f ∘ ι A A subset_rfl :=
-      let i : A => A := ι A A subset_rfl
-      in
-      fun_eq_intro
-        (take a : Mem A,
-          show f a = f (i a), from calc
-            f a = f (dpair a.1 a.2) : {mem_eq rfl}
-            ... = f (i a) : rfl)
+      example : ιYZ ∘ ιXY = ιXZ :=
+        fun_eq_intro
+          (take x : Mem X,
+            show ιYZ (ιXY x) = ιXZ x, from rfl)
+    end part_1
 
-    example (f : A => B) : f = ι B B subset_rfl ∘ f :=
-      let i : B => B := ι B B subset_rfl
-      in
-      fun_eq_intro
-        (take a : Mem A,
-          show f a = i (f a), from calc
-            f a = dpair (f a).1 (f a).2 : mem_eq rfl
-            ... = i (f a) : rfl)
-  end
+    section part_2
+      parameters {A B : Set} {f : A => B}
+
+      private definition ιAA : A => A := ι A A subset_rfl
+      private definition ιBB : B => B := ι B B subset_rfl
+
+      example : f = f ∘ ιAA :=
+        fun_eq_intro
+          (take a : Mem A,
+            show f a = f (ιAA a), from eta_red a ▸ rfl)
+
+      example : f = ι B B subset_rfl ∘ f :=
+        fun_eq_intro
+          (take a : Mem A,
+            show f a = ιBB (f a), from eta_exp (f a))
+
+      hypothesis Hf : bijective f
+
+      private noncomputable definition fi : B => A := the_inverse Hf
+      private proposition Hfi : f <~> fi := the_inverse_spec Hf
+
+      example : fi ∘ f = ιAA :=
+        fun_eq_intro
+          (take a : Mem A,
+            show fi (f a) = ιAA a, from calc
+              fi (f a) = a : fun_eq_elim (and.left Hfi) a
+              ... = ιAA a : eta_exp a)
+
+      example : f ∘ fi = ιBB :=
+        fun_eq_intro
+          (take b : Mem B,
+            show f (fi b) = ιBB b, from calc
+              f (fi b) = b : fun_eq_elim (and.right Hfi) b
+              ... = ιBB b : eta_exp b)
+    end part_2
+
+    section part_3
+      parameters {X Y Z : Set} {f : X => Z} {g : Y => Z}
+      hypothesis Hd : X ∩ Y = ∅
+
+      private proposition Hx : X ⊆ X ∪ Y := subset_union_left
+      private proposition Hy : Y ⊆ X ∪ Y := subset_union_right
+
+      private definition ιX : X => X ∪ Y := ι X (X ∪ Y) Hx
+      private definition ιY : Y => X ∪ Y := ι Y (X ∪ Y) Hy
+
+      private definition p (h : X ∪ Y => Z) : Prop :=
+        h ∘ ιX = f ∧ h ∘ ιY = g 
+
+      example : ∃! h : X ∪ Y => Z, p h :=
+        let h (a : Mem (X ∪ Y)) : Mem Z :=
+          if H : a.1 ∈ X
+            then f (Mem.mk H)
+            else g (Mem.mk (in_union_right a.2 H))
+        in
+        have H₁ : h ∘ ιX = f, from fun_eq_intro
+          (take x : Mem X,
+            show h (ιX x) = f x, from calc
+              h (ιX x) = h (Mem.mk (Hx x.2)) : rfl
+              ... = f (Mem.mk x.2) : dif_pos x.2
+              ... = f x : {eta_red x}),
+        have H₂ : h ∘ ιY = g, from fun_eq_intro
+          (take y : Mem Y,
+            have y.1 ∉ X, from not_in_disjoint_left Hd y.2,
+            show h (ιY y) = g y, from calc
+              h (ιY y) = h (Mem.mk (Hy y.2)) : rfl
+              ... = g (Mem.mk y.2) : dif_neg this
+              ... = g y : {eta_red y}),
+        have ∀ h' : X ∪ Y => Z, p h' → h' = h, from
+        proof
+          take h' : X ∪ Y => Z,
+          assume Hp : p h',
+          show h' = h, from fun_eq_intro
+            (take a : Mem (X ∪ Y),
+              show h' a = h a, from or.elim a.2
+                (suppose a.1 ∈ X,
+                  let ax : Mem X := Mem.mk this in
+                  have a = ιX ax, from eta_exp a,
+                  show h' a = h a, from calc
+                    h' a = h' (ιX ax) : {this}
+                    ... = f ax : fun_eq_elim (and.left Hp) ax
+                    ... = h (ιX ax) : fun_eq_elim H₁⁻¹ ax
+                    ... = h a : {this⁻¹})
+                (suppose a.1 ∈ Y,
+                  let ay : Mem Y := Mem.mk this in
+                  have a = ιY ay, from eta_exp a,
+                  show h' a = h a, from calc
+                    h' a = h' (ιY ay) : {this}
+                    ... = g ay : fun_eq_elim (and.right Hp) ay
+                    ... = h (ιY ay) : fun_eq_elim H₂⁻¹ ay
+                    ... = h a : {this⁻¹}))
+        qed,
+        show ∃! h : X ∪ Y => Z, p h, from
+          exists_unique.intro h (and.intro H₁ H₂) this
+    end part_3
+  end inclusion
 end set
