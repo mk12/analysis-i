@@ -123,13 +123,11 @@ namespace N
   -- Proposition 2.2.8
   proposition add_pos {a b : N} (H : pos a) : pos (a + b) :=
     induction_on b
-      (let E := calc a = a + 0 : add_zero_right
-        in show pos (a + 0), from E ▸ H)
+      (show pos (a + 0), from add_zero_right⁻¹ ▸ H)
       (take b : N,
         suppose pos (a + b),
         have pos (succ (a + b)), from zero_ne_succ,
-        let E := calc succ (a + b) = a + succ b : add_succ_right
-        in show pos (a + succ b), from E ▸ this)
+        show pos (a + succ b), from add_succ_right⁻¹ ▸ this)
 
   -- Corollary 2.2.9
   corollary add_eq_zero {a b : N} (H : a + b = 0) : a = 0 ∧ b = 0 :=
@@ -177,7 +175,7 @@ namespace N
     variables {a b c : N}
 
     proposition order_refl : a ≥ a :=
-      exists.intro 0 (calc a = a + 0 : add_zero_right)
+      exists.intro 0 add_zero_right⁻¹
 
     proposition order_trans (H₁ : a ≥ b) (H₂ : b ≥ c) : a ≥ c :=
       obtain (n : N) (Hn : a = b + n), from H₁,

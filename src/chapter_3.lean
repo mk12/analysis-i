@@ -150,7 +150,6 @@ namespace set
 
   -- Axiom 3.5: Axiom of specification
   definition specify (A : Set) (P : Object → Prop) : Set := λ x, x ∈ A ∧ P x
-  notation `{` binder ` ∈ ` A ` : ` r:(scoped:1 P, specify A P) `}` := r
 
   -- Definition 3.1.22: Intersections
   definition inter (A B : Set) : Set := λ x, x ∈ A ∧ x ∈ B
@@ -675,7 +674,7 @@ namespace set
     noncomputable definition the_inverse (H : invertible f) : Y => X :=
       the (inverse_unique H)
 
-    definition the_inverse_spec (H : invertible f) : f <~> (the_inverse H) :=
+    proposition the_inverse_spec (H : invertible f) : f <~> (the_inverse H) :=
       the_spec (inverse_unique H)
 
     proposition eq_the_inverse {g : Y => X} (H : f <~> g) :
@@ -1116,4 +1115,34 @@ namespace set
           exists_unique.intro h (and.intro H₁ H₂) this
     end part_3
   end inclusion
+
+  -- Definition 3.4.1: Images of sets
+  definition image {X Y : Set} (f : X => Y) {S : Set} (H : S ⊆ X) : Set :=
+    λ y, y ∈ Y ∧ ∃ x : Mem X, y = (f x).1
+
+  -- An image is a subset of the range
+  proposition image_spec {X Y : Set} (f : X => Y) {S : Set} (H : S ⊆ X) :
+      image f H ⊆ Y :=
+    take y,
+    suppose y ∈ image f H,
+    show y ∈ Y, from and.left this
+
+  -- Definition 3.4.2: Inverse images
+  definition preimage {X Y : Set} (f : X => Y) {U : Set} (H : U ⊆ Y) : Set :=
+    λ x, x ∈ X ∧ ∀ Hx : x ∈ X, (f (Mem.mk Hx)).1 ∈ U
+
+  -- A preimage is a subset of the domain
+  proposition preimage_spec {X Y : Set} (f : X => Y) {U : Set} (H : U ⊆ Y) :
+      preimage f H ⊆ X :=
+    take x,
+    suppose x ∈ preimage f H,
+    show x ∈ X, from and.left this
+
+  -- Axiom 3.10: Power set axiom
+  definition power_set {X Y : Set} : set (X => Y) := λ f, true
+
+  -- Lemma 3.4.8
+  example {X : Set} : set Set := λ s, s ⊆ X
+
+  -- Axiom 3.11: Union
 end set

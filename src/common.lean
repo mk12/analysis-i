@@ -3,9 +3,6 @@
 
 open classical
 
--- Returns a proposition which asserts that an object is of a certain type.
-definition has_type (A : Type) (a : A) : Prop := true
-
 -- De Morgan's laws
 section de_morgan
   premises {p q : Prop}
