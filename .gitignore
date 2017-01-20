@@ -1,3 +1,4 @@
+src/test.lean
 build.ninja
 .ninja_deps
 .ninja_log
