@@ -7,7 +7,7 @@ The goal of this project is to formalize all the definitions, axioms, propositio
 
 ## Build
 
-First, install Lean. On OS X, just run `brew install lean`. You should end up with the executables `lean` and `linja`, among others. Run `linja` in the repository directory to compile all the Lean files.
+First, install Lean. On OS X, just run `brew install leanprover/lean/lean`. Then, run `lean --make` in the repository directory to compile all the Lean files.
 
 To make changes and see Lean's output, you can use the official Emacs Lean mode. Or, if you prefer Vim, you can use my [vim-lean][3] plugin.
 
