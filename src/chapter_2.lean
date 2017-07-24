@@ -1,61 +1,84 @@
 -- Copyright 2016 Mitchell Kember. Subject to the MIT License.
 -- Formalization of Analysis I: Chapter 2
 
-import logic.identities
 import .common
 
-open classical eq.ops
+open classical (by_contradiction)
 
--- The natural numbers
-inductive N : Type :=
+-- Definition 2.1.1: The natural numbers
+inductive N : Type
   | zero : N
   | succ : N → N
 
 namespace N
-  -- Axiom 2.1: Zero is a natural number
-  example : N := zero
+  -- Type class instance
+  instance : has_zero N := ⟨zero⟩
+
+  -- Axiom 2.1: 0 is a natural number
+  example : N := 0
 
   -- Axiom 2.2: Every natural number has a successor
   example (n : N) : N := succ n
 
-  -- Axiom 2.3: Zero is not a successor of any natural number
-  theorem zero_ne_succ {n : N} : succ n ≠ zero :=
-    suppose succ n = zero, N.no_confusion this
+  -- Definition 2.1.3: Arabic numerals are defined as natural numbers
+  def num : nat → N
+    | 0 := 0
+    | (nat.succ n) := succ (num n)
+
+  -- Proposition 2.1.4: 3 is a natural number
+  example : N := num 3
+
+  -- Axiom 2.3: 0 is not a successor of any natural number
+  theorem zero_ne_succ {n : N} : succ n ≠ 0 :=
+    suppose succ n = 0, N.no_confusion this
+
+  -- Proposition 2.1.6: 4 is not equal to 0
+  example : num 4 ≠ 0 := zero_ne_succ
 
   -- Axiom 2.4: Different natural numbers have different successors
-  theorem succ_inj {n m : N} (H : succ n = succ m) : n = m :=
-    N.no_confusion H id
+  theorem succ_inj {n m : N} : succ n = succ m → n = m :=
+    succ.inj
+
+  -- Proposition 2.1.8: 6 is not equal to 2
+  example : num 6 ≠ num 2 := 
+    have num 4 ≠ num 0, from zero_ne_succ,
+    have num 5 ≠ num 1, from mt succ_inj this,
+    show num 6 ≠ num 2, from mt succ_inj this
 
   -- Axiom 2.5: Principle of mathematical induction
-  theorem induction {p : N → Prop} (BC : p zero)
-      (IH : ∀ n : N, p n → p (succ n)) : ∀ n : N, p n :=
-    N.rec BC IH
+  theorem induction {p : N → Prop} : p 0 → (∀ n : N, p n → p (succ n)) →
+      ∀ n : N, p n :=
+    N.rec
 
   -- More convenient form of Axiom 2.5
-  local abbreviation induction_on := @N.induction_on
+  open N (renaming rec_on → induction_on)
 
   -- Proposition 2.1.16: Recursive definitions
-  definition recursive_def : Π {f : N → Type} (n : N),
-      f zero → (Π m : N, f m → f (succ m)) → f n :=
-    @N.rec_on
+  section recursive_def
+    parameters (f : N → N → N) (c : N)
+
+    private def a (n : N) : N := N.rec c f n
+
+    example : a 0 = c := rfl
+    example (n : N) : a (succ n) = f n (a n) := rfl
+  end recursive_def
 
   -- Definition 2.2.1: Addition of natural numbers
-  definition add (n m : N) : N :=
-    recursive_def n m (λ n add_n_m : N, succ add_n_m)
+  def add : N → N → N
+    | 0 m := m
+    | (succ n) m := succ (add n m)
 
-  -- Type class instances
-  definition has_zero_N [instance] : has_zero N := has_zero.mk zero
-  definition has_add_N [instance] : has_add N := has_add.mk add
+  -- Type class instance
+  instance : has_add N := ⟨add⟩
 
   -- Lemma 2.2.2
   lemma add_zero_right {n : N} : n + 0 = n :=
     induction_on n
-      (show 0 + 0 = 0, from rfl)
-      (take n : N,
-        assume IH : n + 0 = n,
+      (show zero + zero = zero, from rfl) -- can't use 0 for some reason
+      (assume (n : N), assume (IH : n + 0 = n),
         show succ n + 0 = succ n, from calc
           succ n + 0 = succ (n + 0) : rfl
-          ... = succ n : IH)
+          ... = succ n : by rw IH)
 
   -- Lemma 2.2.3
   lemma add_succ_right {n m : N} : n + succ m = succ (n + m) :=
@@ -63,42 +86,39 @@ namespace N
       (show 0 + succ m = succ (0 + m), from calc
         0 + succ m = succ m : rfl
         ... = succ (0 + m) : rfl)
-      (take n : N,
-        assume IH : n + succ m = succ (n + m),
+      (assume (n : N) (IH : n + succ m = succ (n + m)),
         show succ n + succ m = succ (succ n + m), from calc
           succ n + succ m = succ (n + succ m) : rfl
-          ... = succ (succ (n + m)) : IH
+          ... = succ (succ (n + m)) : by rw IH
           ... = succ (succ n + m) : rfl)
 
   -- Proposition 2.2.4: Addition is commutative
-  proposition add_comm {n m : N} : n + m = m + n :=
+  theorem add_comm {n m : N} : n + m = m + n :=
     induction_on n
       (show 0 + m = m + 0, from calc
         0 + m = m : rfl
-        ... = m + 0 : add_zero_right)
-      (take n : N,
-        assume IH : n + m = m + n,
+        ... = m + 0 : eq.symm add_zero_right)
+      (assume (n : N) (IH : n + m = m + n),
         show succ n + m = m + succ n, from calc
           succ n + m = succ (n + m) : rfl
-          ... = succ (m + n) : IH
-          ... = m + succ n : add_succ_right)
+          ... = succ (m + n) : by rw IH
+          ... = m + succ n : eq.symm add_succ_right)
 
   -- Proposition 2.2.5: Addition is associative
-  proposition add_assoc (a b c : N) : (a + b) + c = a + (b + c) :=
+  theorem add_assoc {a b c : N} : (a + b) + c = a + (b + c) :=
     induction_on a
       (show (0 + b) + c = 0 + (b + c), from calc
         (0 + b) + c = b + c : rfl
         ... = 0 + (b + c) : rfl)
-      (take a : N,
-        assume IH : (a + b) + c = a + (b + c),
+      (assume (a : N) (IH : (a + b) + c = a + (b + c)),
         show (succ a + b) + c = succ a + (b + c), from calc
           (succ a + b) + c = succ (a + b) + c : rfl
           ... = succ ((a + b) + c) : rfl
-          ... = succ (a + (b + c)) : IH
+          ... = succ (a + (b + c)) : by rw IH
           ... = succ a + (b + c) : rfl)
 
   -- Proposition 2.2.6: Cancellation law
-  proposition add_cancel {a b c : N} : a + b = a + c → b = c :=
+  theorem add_cancel {a b c : N} : a + b = a + c → b = c :=
     induction_on a
       (show 0 + b = 0 + c → b = c, from
         suppose 0 + b = 0 + c,
@@ -106,8 +126,7 @@ namespace N
           b = 0 + b : rfl
           ... = 0 + c : this
           ... = c : rfl)
-      (take a : N,
-        assume IH : a + b = a + c → b = c,
+      (assume (a : N) (IH : a + b = a + c → b = c),
         show succ a + b = succ a + c → b = c, from
           suppose succ a + b = succ a + c,
           have succ (a + b) = succ (a + c), from calc
@@ -118,19 +137,18 @@ namespace N
           show b = c, from IH this)
 
   -- Definition 2.2.7: Positive natural numbers
-  definition pos (n : N) : Prop := n ≠ 0
+  def pos (n : N) : Prop := n ≠ 0
 
   -- Proposition 2.2.8
-  proposition add_pos {a b : N} (H : pos a) : pos (a + b) :=
+  theorem add_pos {a b : N} (H : pos a) : pos (a + b) :=
     induction_on b
-      (show pos (a + 0), from add_zero_right⁻¹ ▸ H)
-      (take b : N,
-        suppose pos (a + b),
+      (show pos (a + 0), by rw add_zero_right; exact H)
+      (assume (b : N) (IH : pos (a + b)),
         have pos (succ (a + b)), from zero_ne_succ,
-        show pos (a + succ b), from add_succ_right⁻¹ ▸ this)
+        show pos (a + succ b), by rw add_succ_right; exact this)
 
   -- Corollary 2.2.9
-  corollary add_eq_zero {a b : N} (H : a + b = 0) : a = 0 ∧ b = 0 :=
+  theorem add_eq_zero {a b : N} (H : a + b = 0) : a = 0 ∧ b = 0 :=
     by_contradiction
       (suppose ¬(a = 0 ∧ b = 0),
         have a ≠ 0 ∨ b ≠ 0, from dm_not_or_not this,
@@ -139,37 +157,31 @@ namespace N
             have a + b ≠ 0, from add_pos this,
             absurd H this)
           (suppose b ≠ 0,
-            have b + a ≠ 0, from add_pos this,
-            have a + b ≠ 0, from add_comm ▸ this,
+            have a + b ≠ 0, by rw add_comm; exact add_pos this,
             absurd H this))
 
   -- Lemma 2.2.10
-  lemma pos_pred {a : N} : pos a → ∃ b : N, succ b = a :=
-    induction_on a
-      (show pos 0 → ∃ b : N, succ b = 0, from
-        suppose pos 0,
-        absurd rfl this)
-      (take a : N,
-        assume IH : pos a → ∃ b : N, succ b = a,
-        show pos (succ a) → ∃ b : N, succ b = succ a, from
-          suppose pos (succ a),
-          induction_on a
-            (show ∃ b : N, succ b = succ 0, from
-              exists.intro 0 rfl)
-            (take a' : N,
-              suppose ∃ b : N, succ b = succ a',
-              obtain (b : N) (H : succ b = succ a'), from this,
-              show ∃ b : N, succ b = succ (succ a'), from
-                exists.intro (succ b) (H ▸ rfl)))
+  lemma pos_pred : ∀ a : N, pos a → ∃ b : N, succ b = a
+    | 0 := suppose pos 0, absurd rfl this
+    | (succ a) :=
+      suppose pos (succ a),
+      show ∃ b : N, succ b = succ a, from induction_on a
+        (show ∃ b : N, succ b = succ 0, from ⟨0, rfl⟩)
+        (assume (a' : N) (IH : ∃ b : N, succ b = succ a'),
+          let ⟨b, H⟩ := IH in
+          have succ (succ b) = succ (succ b), from rfl,
+          show ∃ b : N, succ b = succ (succ a'), from
+            ⟨succ b, H ▸ this⟩)
 
   -- Definition 2.2.11: Ordering of the natural numbers
   definition le (n m : N) : Prop := ∃ a : N, m = n + a
   definition lt (n m : N) : Prop := le n m ∧ n ≠ m
 
   -- Type class instances
-  definition has_le_N [instance] : has_le N := has_le.mk le
-  definition has_lt_N [instance] : has_lt N := has_lt.mk lt
+  instance : has_le N := ⟨le⟩
+  instance : has_lt N := ⟨lt⟩
 
+/-
   -- Proposition 2.2.12: Basic properties of order for natural numbers
   section order_properties
     variables {a b c : N}
@@ -449,7 +461,7 @@ namespace N
 
   -- Proposition 2.2.14: Strong principle of induction
   section strong_induction
-    parameters {p : N → Prop} {n₀ : N}
+    parameters (p : N → Prop) (n₀ : N)
 
     private definition q (n : N) : Prop :=
       ∀ m : N, m ≥ n₀ ∧ m < n → p m
@@ -517,6 +529,7 @@ namespace N
   -- Definition 2.3.1: Multiplication of natural numbers
   definition mul (n m : N) : N :=
     recursive_def n 0 (λ n mul_n_m : N, mul_n_m + m)
+    -- TODO: use guards
 
   -- Type class instances
   definition has_mul_N [instance] : has_mul N := has_mul.mk mul
@@ -723,4 +736,5 @@ namespace N
       ... = a**2 + b * a + a * b + b**2 : rfl
       ... = a**2 + (b * a + a * b) + b**2 : add_assoc
       ... = a**2 + 2 * a * b + b**2 : this
+      -/
 end N
