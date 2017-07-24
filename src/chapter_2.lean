@@ -1,9 +1,10 @@
--- Copyright 2016 Mitchell Kember. Subject to the MIT License.
+-- Copyright 2017 Mitchell Kember. Subject to the MIT License.
 -- Formalization of Analysis I: Chapter 2
 
 import .common
 
 open classical (by_contradiction)
+open eq (symm)
 
 -- Definition 2.1.1: The natural numbers
 inductive N : Type
@@ -97,12 +98,12 @@ namespace N
     induction_on n
       (show 0 + m = m + 0, from calc
         0 + m = m : rfl
-        ... = m + 0 : eq.symm add_zero_right)
+        ... = m + 0 : add_zero_right.symm)
       (assume (n : N) (IH : n + m = m + n),
         show succ n + m = m + succ n, from calc
           succ n + m = succ (n + m) : rfl
           ... = succ (m + n) : by rw IH
-          ... = m + succ n : eq.symm add_succ_right)
+          ... = m + succ n : add_succ_right.symm)
 
   -- Proposition 2.2.5: Addition is associative
   theorem add_assoc {a b c : N} : (a + b) + c = a + (b + c) :=
@@ -181,85 +182,83 @@ namespace N
   instance : has_le N := ⟨le⟩
   instance : has_lt N := ⟨lt⟩
 
-/-
   -- Proposition 2.2.12: Basic properties of order for natural numbers
   section order_properties
     variables {a b c : N}
 
-    proposition order_refl : a ≥ a :=
-      exists.intro 0 add_zero_right⁻¹
+    theorem order_refl : a ≥ a :=
+      ⟨0, add_zero_right.symm⟩
 
-    proposition order_trans (H₁ : a ≥ b) (H₂ : b ≥ c) : a ≥ c :=
-      obtain (n : N) (Hn : a = b + n), from H₁,
-      obtain (m : N) (Hm : b = c + m), from H₂,
-      have a = c + (m + n), from calc
-        a = b + n : Hn
-        ... = c + m + n : Hm
-        ... = c + (m + n) : add_assoc,
-      show a ≥ c, from exists.intro (m + n) this
+    theorem order_trans : a ≥ b → b ≥ c → a ≥ c
+      | ⟨n, (Hn : a = b + n)⟩ ⟨m, (Hm : b = c + m)⟩ :=
+        have a = c + (m + n), from calc
+          a = b + n : Hn
+          ... = c + m + n : by rw Hm
+          ... = c + (m + n) : add_assoc,
+        show a ≥ c, from ⟨m + n, this⟩
 
-    proposition order_antisymm (H₁ : a ≥ b) (H₂ : b ≥ a) : a = b :=
-      obtain (n : N) (Hn : a = b + n), from H₁,
-      obtain (m : N) (Hm : b = a + m), from H₂,
-      have a + 0 = a + (m + n), from calc
-        a + 0 = a : add_zero_right
-        ... = b + n : Hn
-        ... = a + m + n : Hm
-        ... = a + (m + n) : add_assoc,
-      have m + n = 0, from add_cancel this⁻¹,
-      have m = 0 ∧ n = 0, from add_eq_zero this,
-      show a = b, from calc
-        a = b + n : Hn
-        ... = b + 0 : {and.right this}
-        ... = b : add_zero_right
+    theorem order_antisymm : a ≥ b → b ≥ a → a = b
+      | ⟨n, (Hn : a = b + n)⟩ ⟨m, (Hm : b = a + m)⟩ :=
+        have a + 0 = a + (m + n), from calc
+          a + 0 = a : add_zero_right
+          ... = b + n : Hn
+          ... = a + m + n : by rw Hm
+          ... = a + (m + n) : add_assoc,
+        have m + n = 0, from add_cancel this.symm,
+        have m = 0 ∧ n = 0, from add_eq_zero this,
+        show a = b, from calc
+          a = b + n : Hn
+          ... = b + 0 : by rw this.right
+          ... = b : add_zero_right
 
-    proposition ge_iff_add_ge : a ≥ b ↔ a + c ≥ b + c :=
+    theorem ge_iff_add_ge : a ≥ b ↔ a + c ≥ b + c :=
       iff.intro
         (suppose a ≥ b,
-          obtain (n : N) (H : a = b + n), from this,
+          let ⟨n, (H : a = b + n)⟩ := this in
           have a + c = b + c + n, from calc
-            a + c = b + n + c : H
+            a + c = b + n + c : by rw H
             ... = b + (n + c) : add_assoc
-            ... = b + (c + n) : add_comm
-            ... = b + c + n : add_assoc,
-          show a + c ≥ b + c, from exists.intro n this)
+            ... = b + (c + n) : by rw @add_comm n c
+            ... = b + c + n : add_assoc.symm,
+          show a + c ≥ b + c, from ⟨n, this⟩)
         (suppose a + c ≥ b + c,
-          obtain (n : N) (H : a + c = b + c + n), from this,
+          let ⟨n, (H : a + c = b + c + n)⟩ := this in
           have c + a = c + (b + n), from calc
             c + a = a + c : add_comm
             ... = b + c + n : H
-            ... = c + b + n : add_comm
+            ... = c + b + n : by rw @add_comm b c
             ... = c + (b + n) : add_assoc,
           have a = b + n, from add_cancel this,
-          show a ≥ b, from exists.intro n this)
+          show a ≥ b, from ⟨n, this⟩)
 
-    proposition lt_pos : a < b ↔ ∃ d : N, b = a + d ∧ pos d :=
+    theorem lt_pos : a < b ↔ ∃ d : N, b = a + d ∧ pos d :=
       iff.intro
         (suppose a < b,
           have H : a ≤ b ∧ a ≠ b, from this,
-          obtain (d : N) (Hd : b = a + d), from and.left H,
+          let ⟨d, (Hd : b = a + d)⟩ := H.left in
           have pos d, from
             suppose d = 0,
             have b = a, from calc
               b = a + d : Hd
-              ... = a + 0 : this
+              ... = a + 0 : by rw this
               ... = a : add_zero_right,
-            absurd this⁻¹ (and.right H),
+            absurd this.symm H.right,
           show ∃ d : N, b = a + d ∧ pos d, from
-            exists.intro d (and.intro Hd this))
+            ⟨d, ⟨Hd, this⟩⟩)
         (suppose ∃ d : N, b = a + d ∧ pos d,
-          obtain (d : N) (H : b = a + d ∧ pos d), from this,
-          have a ≤ b, from exists.intro d (and.left H),
-          have a ≠ b, from
+          let ⟨d, (H : b = a + d ∧ pos d)⟩ := this in
+          have H₁ : a ≤ b, from ⟨d, H.left⟩,
+          have H₂ : a ≠ b, from
             suppose a = b,
             have b + 0 = b + d, from calc
               b + 0 = b : add_zero_right
-              ... = a + d : and.left H
-              ... = b + d : this,
+              ... = a + d : H.left
+              ... = b + d : by rw this,
             have 0 = d, from add_cancel this,
-            absurd this⁻¹ (and.right H),
-          show a < b, from and.intro `a ≤ b` `a ≠ b`)
+            absurd this.symm H.right,
+          show a < b, from ⟨H₁, H₂⟩)
 
+/-
     proposition lt_iff_succ_le : a < b ↔ succ a ≤ b :=
       iff.intro
         (suppose a < b,
@@ -350,8 +349,10 @@ namespace N
       have a ≠ 0, from and.right this,
       have a = 0, from and.left (add_eq_zero H⁻¹),
       absurd `a = 0` `a ≠ 0`
+      -/
   end order_properties
 
+/-
   -- Proposition 2.2.13: Trichotomy of order for natural numbers
   section trichotomy
     variables {a b : N}
