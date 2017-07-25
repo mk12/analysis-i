@@ -162,7 +162,7 @@ namespace N
             absurd H this))
 
   -- Lemma 2.2.10
-  lemma pos_pred : ∀ a : N, pos a → ∃ b : N, succ b = a
+  lemma pos_pred : ∀ {a : N}, pos a → ∃ b : N, succ b = a
     | 0 := suppose pos 0, absurd rfl this
     | (succ a) :=
       suppose pos (succ a),
@@ -258,98 +258,102 @@ namespace N
             absurd this.symm H.right,
           show a < b, from ⟨H₁, H₂⟩)
 
-/-
-    proposition lt_iff_succ_le : a < b ↔ succ a ≤ b :=
+    theorem lt_iff_succ_le : a < b ↔ succ a ≤ b :=
       iff.intro
         (suppose a < b,
-          obtain (d : N) (H₁ : b = a + d ∧ pos d), from iff.mp lt_pos this,
-          obtain (d' : N) (H₂ : succ d' = d), from pos_pred (and.right H₁),
+          let
+            ⟨d, (H₁ : b = a + d ∧ pos d)⟩ := iff.mp lt_pos this,
+            ⟨d', (H₂ : succ d' = d)⟩ := pos_pred H₁.right
+          in
           have b = succ a + d', from calc
-            b = a + d : and.left H₁
-            ... = a + succ d' : H₂
+            b = a + d : H₁.left
+            ... = a + succ d' : by rw H₂
             ... = succ (a + d') : add_succ_right
             ... = succ a + d' : rfl,
           show succ a ≤ b, from exists.intro d' this)
         (suppose succ a ≤ b,
-          obtain (n : N) (H : b = succ a + n), from this,
+          let ⟨n, (H : b = succ a + n)⟩ := this in
           have b = a + succ n, from calc
             b = succ a + n : H
             ... = succ (a + n) : rfl
-            ... = a + succ n : add_succ_right,
-          have a ≤ b, from exists.intro (succ n) this,
-          have a ≠ b, from
+            ... = a + succ n : add_succ_right.symm,
+          have H₁ : a ≤ b, from ⟨succ n, this⟩,
+          have H₂ : a ≠ b, from
             suppose a = b,
             have a + 0 = a + succ n, from calc
               a + 0 = a : add_zero_right
               ... = b : this
               ... = succ a + n : H
               ... = succ (a + n) : rfl
-              ... = a + succ n : add_succ_right,
+              ... = a + succ n : add_succ_right.symm,
             have 0 = succ n, from add_cancel this,
-            absurd this⁻¹ zero_ne_succ,
-          show a < b, from and.intro `a ≤ b` `a ≠ b`)
+            absurd this.symm zero_ne_succ,
+          show a < b, from ⟨H₁, H₂⟩)
 
     -- Extra properties
 
-    proposition lt_succ_iff_le : a < succ b ↔ a ≤ b :=
+    theorem lt_succ_iff_le : a < succ b ↔ a ≤ b :=
       iff.intro
         (suppose a < succ b,
-          obtain (d : N) (H₁ : succ b = a + d ∧ pos d), from iff.mp lt_pos this,
-          obtain (d' : N) (H₂ : succ d' = d), from pos_pred (and.right H₁),
+          let
+            ⟨d, (H₁ : succ b = a + d ∧ pos d)⟩ := iff.mp lt_pos this,
+            ⟨d', (H₂ : succ d' = d)⟩ := pos_pred H₁.right
+          in
           have succ b = succ (a + d'), from calc
-            succ b = a + d : and.left H₁
-            ... = a + succ d' : H₂
+            succ b = a + d : H₁.left
+            ... = a + succ d' : by rw H₂
             ... = succ (a + d') : add_succ_right,
           have b = a + d', from succ_inj this,
-          show a ≤ b, from exists.intro d' this)
+          show a ≤ b, from ⟨d', this⟩)
         (suppose a ≤ b,
-          obtain (n : N) (H : b = a + n), from this,
+          let ⟨n, (H : b = a + n)⟩ := this in 
           have succ b = a + succ n, from calc
-            succ b = succ (a + n) : H
-            ... = a + succ n : add_succ_right,
-          have a ≤ succ b, from exists.intro (succ n) this,
-          have a ≠ succ b, from
+            succ b = succ (a + n) : by rw H
+            ... = a + succ n : add_succ_right.symm,
+          have H₁ : a ≤ succ b, from ⟨succ n, this⟩,
+          have H₂ : a ≠ succ b, from
             suppose a = succ b,
             have b + 0 = b + succ n, from calc
               b + 0 = b : add_zero_right
               ... = a + n : H
-              ... = succ b + n : this
+              ... = succ b + n : by rw this
               ... = succ (b + n) : rfl
-              ... = b + succ n : add_succ_right,
+              ... = b + succ n : add_succ_right.symm,
             have 0 = succ n, from add_cancel this,
-            absurd this⁻¹ zero_ne_succ,
-          show a < succ b, from and.intro `a ≤ succ b` `a ≠ succ b`)
+            absurd this.symm zero_ne_succ,
+          show a < succ b, from ⟨H₁, H₂⟩)
 
-    proposition not_lt_and_ge : ¬ (a < b ∧ a ≥ b) :=
+    theorem not_lt_and_ge : ¬ (a < b ∧ a ≥ b) :=
       assume H : a < b ∧ a ≥ b,
-      have a ≠ b, from and.right (and.left H),
-      obtain (n : N) (Hn : b = a + n), from and.left (and.left H),
-      obtain (m : N) (Hm : a = b + m), from and.right H,
+      let 
+        ⟨n, (Hn : b = a + n)⟩ := H.left.left,
+        ⟨m, (Hm : a = b + m)⟩ := H.right
+      in
+      have H₁ : a ≠ b, from H.left.right,
       have a + 0 = a + (n + m), from calc
         a + 0 = a : add_zero_right
         ... = b + m : Hm
-        ... = a + n + m : Hn
+        ... = a + n + m : by rw Hn
         ... = a + (n + m) : add_assoc,
       have 0 = n + m, from add_cancel this,
-      have m = 0, from and.right (add_eq_zero this⁻¹),
+      have m = 0, from (add_eq_zero this.symm).right,
       have a = b, from calc
         a = b + m : Hm
-        ... = b + 0 : this
+        ... = b + 0 : by rw this
         ... = b : add_zero_right,
-      absurd `a = b` `a ≠ b`
+      absurd this H₁
 
-    proposition not_le_and_gt : ¬ (a ≤ b ∧ a > b) :=
+    theorem not_le_and_gt : ¬ (a ≤ b ∧ a > b) :=
       suppose a ≤ b ∧ a > b,
-      have b < a ∧ b ≥ a, from and.swap this,
+      have b < a ∧ b ≥ a, from this.swap,
       absurd this (@not_lt_and_ge b a)
 
-    proposition not_lt_zero : ¬ (a < 0) :=
+    theorem not_lt_zero : ¬ (a < 0) :=
       suppose a < 0,
-      obtain (n : N) (H : 0 = a + n), from and.left this,
-      have a ≠ 0, from and.right this,
-      have a = 0, from and.left (add_eq_zero H⁻¹),
-      absurd `a = 0` `a ≠ 0`
-      -/
+      let ⟨n, (H : 0 = a + n)⟩ := this.left in
+      have H₁ : a ≠ 0, from this.right,
+      have H₂ : a = 0, from (add_eq_zero H.symm).left,
+      absurd H₂ H₁
   end order_properties
 
 /-
