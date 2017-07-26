@@ -30,11 +30,11 @@ namespace N
   example : N := num 3
 
   -- Axiom 2.3: 0 is not a successor of any natural number
-  theorem zero_ne_succ {n : N} : succ n ≠ 0 :=
+  theorem succ_ne_zero {n : N} : succ n ≠ 0 :=
     suppose succ n = 0, N.no_confusion this
 
   -- Proposition 2.1.6: 4 is not equal to 0
-  example : num 4 ≠ 0 := zero_ne_succ
+  example : num 4 ≠ 0 := succ_ne_zero
 
   -- Axiom 2.4: Different natural numbers have different successors
   theorem succ_inj {n m : N} : succ n = succ m → n = m :=
@@ -42,7 +42,7 @@ namespace N
 
   -- Proposition 2.1.8: 6 is not equal to 2
   example : num 6 ≠ num 2 := 
-    have num 4 ≠ num 0, from zero_ne_succ,
+    have num 4 ≠ num 0, from succ_ne_zero,
     have num 5 ≠ num 1, from mt succ_inj this,
     show num 6 ≠ num 2, from mt succ_inj this
 
@@ -144,7 +144,7 @@ namespace N
     induction_on b
       (show pos (a + 0), by rw add_zero_right; exact H)
       (assume (b : N) (IH : pos (a + b)),
-        have pos (succ (a + b)), from zero_ne_succ,
+        have pos (succ (a + b)), from succ_ne_zero,
         show pos (a + succ b), by rw add_succ_right; exact this)
 
   -- Corollary 2.2.9
@@ -154,7 +154,7 @@ namespace N
         show zero = 0 ∧ b = 0, from ⟨rfl, this⟩) -- can't use 0 for some reason
       (assume (a : N) (H : succ a + b = 0),
         have succ (a + b) = 0, from H,
-        absurd this zero_ne_succ)
+        absurd this succ_ne_zero)
 
   -- Lemma 2.2.10
   lemma pos_pred {a : N} : pos a → ∃ b : N, succ b = a :=
@@ -276,7 +276,7 @@ namespace N
               ... = succ (a + n) : rfl
               ... = a + succ n : add_succ_right.symm,
             have 0 = succ n, from add_cancel this,
-            absurd this.symm zero_ne_succ,
+            absurd this.symm succ_ne_zero,
           show a < b, from ⟨H₁, H₂⟩)
 
     -- Extra properties
@@ -309,7 +309,7 @@ namespace N
               ... = succ (b + n) : rfl
               ... = b + succ n : add_succ_right.symm,
             have 0 = succ n, from add_cancel this,
-            absurd this.symm zero_ne_succ,
+            absurd this.symm succ_ne_zero,
           show a < succ b, from ⟨H₁, H₂⟩)
 
     theorem not_lt_and_ge : ¬ (a < b ∧ a ≥ b) :=
@@ -376,7 +376,7 @@ namespace N
                   ... = succ a : this
                   ... = b + succ 0 : H₁,
                 have 0 = succ 0, from add_cancel this,
-                absurd this.symm zero_ne_succ,
+                absurd this.symm succ_ne_zero,
               have succ a ≥ b, from ⟨succ 0, H₁⟩,
               have succ a > b, from ⟨this, H₂⟩,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
@@ -394,7 +394,7 @@ namespace N
                   ... = b + succ n : add_zero_right
                   ... = succ a + succ n : by rw this,
                 have 0 = succ n, from add_cancel this,
-                absurd this.symm zero_ne_succ,
+                absurd this.symm succ_ne_zero,
               have succ a ≥ b, from ⟨succ n, H₁⟩,
               have succ a > b, from ⟨this, H₂⟩,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
