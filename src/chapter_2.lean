@@ -220,7 +220,7 @@ namespace N
           have a = b + n, from add_cancel this,
           show a ≥ b, from ⟨n, this⟩)
 
-    theorem lt_pos : a < b ↔ ∃ d : N, b = a + d ∧ pos d :=
+    theorem lt_iff_pos : a < b ↔ ∃ d : N, b = a + d ∧ pos d :=
       iff.intro
         (suppose a < b,
           have H : a ≤ b ∧ a ≠ b, from this,
@@ -251,7 +251,7 @@ namespace N
       iff.intro
         (suppose a < b,
           let
-            ⟨d, (H₁ : b = a + d ∧ pos d)⟩ := iff.mp lt_pos this,
+            ⟨d, (H₁ : b = a + d ∧ pos d)⟩ := lt_iff_pos.mp this,
             ⟨d', (H₂ : succ d' = d)⟩ := pos_pred H₁.right
           in
           have b = succ a + d', from calc
@@ -285,7 +285,7 @@ namespace N
       iff.intro
         (suppose a < succ b,
           let
-            ⟨d, (H₁ : succ b = a + d ∧ pos d)⟩ := iff.mp lt_pos this,
+            ⟨d, (H₁ : succ b = a + d ∧ pos d)⟩ := lt_iff_pos.mp this,
             ⟨d', (H₂ : succ d' = d)⟩ := pos_pred H₁.right
           in
           have succ b = succ (a + d'), from calc
@@ -359,7 +359,7 @@ namespace N
         (assume (a : N) (IH : a < b ∨ a = b ∨ a > b),
           show succ a < b ∨ succ a = b ∨ succ a > b, from IH.elim3
             (suppose a < b,
-              have H : succ a ≤ b, from iff.mp lt_iff_succ_le this,
+              have H : succ a ≤ b, from lt_iff_succ_le.mp this,
               by_cases
                 (suppose succ a = b, or.inr (or.inl this))
                 (suppose succ a ≠ b, or.inl ⟨H, this⟩))
@@ -416,39 +416,38 @@ namespace N
       absurd this not_le_and_gt
   end trichotomy
 
-/-
   -- Some more order properties
   section order_equivalence
     variables {a b : N}
 
-    proposition le_iff_not_gt : a ≤ b ↔ ¬ a > b :=
+    theorem le_iff_not_gt : a ≤ b ↔ ¬ a > b :=
       iff.intro
-        (suppose a ≤ b,
-          show ¬ a > b, from
-            suppose a > b,
-            absurd (and.intro `a ≤ b` `a > b`) not_le_and_gt)
-        (suppose ¬ a > b,
-          show a ≤ b, from or.elim3 trichotomy
-            (suppose a < b, and.left this)
-            (suppose a = b, exists.intro 0 (this⁻¹ ▸ add_zero_right⁻¹))
-            (suppose a > b, absurd this `¬ a > b`))
+        (assume (H₁ : a ≤ b) (H₂ : a > b),
+          have a ≤ b ∧ a > b, from ⟨H₁, H₂⟩,
+          absurd this not_le_and_gt)
+        (assume H : ¬ a > b,
+          show a ≤ b, from trichotomy.elim3
+            (suppose a < b, this.left)
+            (suppose a = b, ⟨0, this.symm ▸ add_zero_right.symm⟩)
+            (suppose a > b, absurd this H))
 
-    proposition gt_iff_not_le : a > b ↔ ¬ a ≤ b :=
+    theorem gt_iff_not_le : a > b ↔ ¬ a ≤ b :=
       iff.intro
         (suppose a > b,
           have ¬ ¬ a > b, from not_not_intro this,
-          show ¬ a ≤ b, from mt (iff.mp le_iff_not_gt) this)
+          show ¬ a ≤ b, from mt le_iff_not_gt.mp this)
         (suppose ¬ a ≤ b,
-          have ¬ ¬ a > b, from mt (iff.mpr le_iff_not_gt) this,
+          have ¬ ¬ a > b, from mt le_iff_not_gt.mpr this,
           show a > b, from not_not_elim this)
 
-    proposition ge_iff_not_lt : a ≥ b ↔ ¬ a < b :=
+    theorem ge_iff_not_lt : a ≥ b ↔ ¬ a < b :=
       @le_iff_not_gt b a
 
-    proposition lt_iff_not_ge : a < b ↔ ¬ a ≥ b :=
+    theorem lt_iff_not_ge : a < b ↔ ¬ a ≥ b :=
       @gt_iff_not_le b a
   end order_equivalence
 
+/-
   -- Proposition 2.2.14: Strong principle of induction
   section strong_induction
     parameters (p : N → Prop) (n₀ : N)
@@ -481,13 +480,13 @@ namespace N
                 absurd this not_lt_and_ge)
               (suppose n₀ ≠ succ n,
                 have succ n > n₀, from and.intro H₁ this,
-                have n ≥ n₀, from iff.mp lt_succ_iff_le this,
+                have n ≥ n₀, from lt_succ_iff_le.mp this,
                 have q n, from IH this,
                 have p n, from SI `n ≥ n₀` this,
                 show p m, from by_cases
                   (suppose n = m, this ▸ `p n`)
                   (suppose n ≠ m,
-                    have m ≤ n, from iff.mp lt_succ_iff_le H₃,
+                    have m ≤ n, from lt_succ_iff_le.mp H₃,
                     have m < n, from and.intro this (ne.symm `n ≠ m`),
                     have m ≥ n₀ ∧ m < n, from and.intro H₂ this,
                     show p m, from `q n` m this)))
@@ -591,11 +590,11 @@ namespace N
   corollary mul_pos {n m : N} : pos (n * m) ↔ pos n ∧ pos m :=
     iff.intro
       (suppose pos (n * m),
-        have ¬ (n = 0 ∨ m = 0), from mt (iff.mpr mul_eq_zero) this,
+        have ¬ (n = 0 ∨ m = 0), from mt mul_eq_zero.mpr this,
         show pos n ∧ pos m, from dm_not_and_not this)
       (suppose pos n ∧ pos m,
         have ¬ (n = 0 ∨ m = 0), from dm_not_or this,
-        show pos (n * m), from mt (iff.mp mul_eq_zero) this)
+        show pos (n * m), from mt mul_eq_zero.mp this)
 
   -- Proposition 2.3.4: Distributive law
   section distributive_law
@@ -642,14 +641,14 @@ namespace N
   -- Proposition 2.3.6: Multiplication preserves order
   proposition mul_lt_mul {a b c : N} (H₁ : a < b) (H₂ : pos c) :
       a * c < b * c :=
-    obtain (d : N) (Hd : b = a + d ∧ pos d), from iff.mp lt_pos H₁,
+    obtain (d : N) (Hd : b = a + d ∧ pos d), from iff.mp lt_iff_pos H₁,
     have H₃ : b * c = a * c + d * c, from calc
       b * c = (a + d) * c : {and.left Hd}
       ... = a * c + d * c : right_distrib,
     have pos d ∧ pos c, from and.intro (and.right Hd) H₂,
     have pos (d * c), from iff.mpr mul_pos this,
     have b * c = a * c + d * c ∧ pos (d * c), from and.intro H₃ this,
-    show a * c < b * c, from iff.mpr lt_pos (exists.intro (d * c) this)
+    show a * c < b * c, from iff.mpr lt_iff_pos (exists.intro (d * c) this)
 
   -- Corollary 2.3.7: Cancellation law
   corollary mul_cancel {a b c : N} (H₁ : a * c = b * c) (H₂ : pos c) : a = b :=
