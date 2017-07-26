@@ -3,6 +3,14 @@
 
 open classical
 
+-- Disjunction helpers
+namespace or
+  variables {a b c d : Prop}
+  
+  theorem elim3 (H : a ∨ b ∨ c) (Ha : a → d) (Hb : b → d) (Hc : c → d) : d :=
+    H.elim Ha (suppose b ∨ c, this.elim Hb Hc)
+end or
+
 -- De Morgan's laws
 section de_morgan
   variables {p q : Prop}

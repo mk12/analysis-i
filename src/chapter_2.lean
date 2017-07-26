@@ -3,7 +3,7 @@
 
 import .common
 
-open classical (by_contradiction)
+open classical (by_cases by_contradiction)
 open eq (symm)
 
 -- Definition 2.1.1: The natural numbers
@@ -51,7 +51,7 @@ namespace N
       ∀ n : N, p n :=
     N.rec
 
-  -- More convenient form of Axiom 2.5
+  -- More convenient forms of Axiom 2.5
   open N (renaming rec_on → induction_on)
 
   -- Proposition 2.1.16: Recursive definitions
@@ -121,21 +121,19 @@ namespace N
   -- Proposition 2.2.6: Cancellation law
   theorem add_cancel {a b c : N} : a + b = a + c → b = c :=
     induction_on a
-      (show 0 + b = 0 + c → b = c, from
-        suppose 0 + b = 0 + c,
+      (suppose 0 + b = 0 + c,
         show b = c, from calc
           b = 0 + b : rfl
           ... = 0 + c : this
           ... = c : rfl)
       (assume (a : N) (IH : a + b = a + c → b = c),
-        show succ a + b = succ a + c → b = c, from
-          suppose succ a + b = succ a + c,
-          have succ (a + b) = succ (a + c), from calc
-            succ (a + b) = succ a + b : rfl
-            ... = succ a + c : this
-            ... = succ (a + c) : rfl,
-          have a + b = a + c, from succ_inj this,
-          show b = c, from IH this)
+        suppose succ a + b = succ a + c,
+        have succ (a + b) = succ (a + c), from calc
+          succ (a + b) = succ a + b : rfl
+          ... = succ a + c : this
+          ... = succ (a + c) : rfl,
+        have a + b = a + c, from succ_inj this,
+        show b = c, from IH this)
 
   -- Definition 2.2.7: Positive natural numbers
   def pos (n : N) : Prop := n ≠ 0
@@ -153,7 +151,7 @@ namespace N
     by_contradiction
       (suppose ¬(a = 0 ∧ b = 0),
         have a ≠ 0 ∨ b ≠ 0, from dm_not_or_not this,
-        or.elim this
+        this.elim
           (suppose a ≠ 0,
             have a + b ≠ 0, from add_pos this,
             absurd H this)
@@ -162,17 +160,11 @@ namespace N
             absurd H this))
 
   -- Lemma 2.2.10
-  lemma pos_pred : ∀ {a : N}, pos a → ∃ b : N, succ b = a
-    | 0 := suppose pos 0, absurd rfl this
-    | (succ a) :=
-      suppose pos (succ a),
-      show ∃ b : N, succ b = succ a, from induction_on a
-        (show ∃ b : N, succ b = succ 0, from ⟨0, rfl⟩)
-        (assume (a' : N) (IH : ∃ b : N, succ b = succ a'),
-          let ⟨b, H⟩ := IH in
-          have succ (succ b) = succ (succ b), from rfl,
-          show ∃ b : N, succ b = succ (succ a'), from
-            ⟨succ b, H ▸ this⟩)
+  lemma pos_pred {a : N} : pos a → ∃ b : N, succ b = a :=
+    induction_on a
+      (suppose pos 0, absurd rfl this)
+      (assume (a : N) (IH : pos a → ∃ b : N, succ b = a) (H : pos (succ a)),
+        show ∃ b : N, succ b = succ a, from ⟨a, rfl⟩)
 
   -- Definition 2.2.11: Ordering of the natural numbers
   definition le (n m : N) : Prop := ∃ a : N, m = n + a
@@ -270,7 +262,7 @@ namespace N
             ... = a + succ d' : by rw H₂
             ... = succ (a + d') : add_succ_right
             ... = succ a + d' : rfl,
-          show succ a ≤ b, from exists.intro d' this)
+          show succ a ≤ b, from ⟨d', this⟩)
         (suppose succ a ≤ b,
           let ⟨n, (H : b = succ a + n)⟩ := this in
           have b = a + succ n, from calc
@@ -356,32 +348,30 @@ namespace N
       absurd H₂ H₁
   end order_properties
 
-/-
   -- Proposition 2.2.13: Trichotomy of order for natural numbers
   section trichotomy
     variables {a b : N}
 
-    proposition trichotomy : a < b ∨ a = b ∨ a > b :=
+    theorem trichotomy : a < b ∨ a = b ∨ a > b :=
       induction_on a
         (show 0 < b ∨ 0 = b ∨ 0 > b, from
-          have 0 ≤ b, from exists.intro b rfl,
+          have H : 0 ≤ b, from ⟨b, rfl⟩,
           by_cases
             (suppose 0 = b, or.inr (or.inl this))
-            (suppose 0 ≠ b, or.inl (and.intro `0 ≤ b` this)))
-        (take a : N,
-          assume IH : a < b ∨ a = b ∨ a > b,
-          show succ a < b ∨ succ a = b ∨ succ a > b, from or.elim3 IH
+            (suppose 0 ≠ b, or.inl ⟨H, this⟩))
+        (assume (a : N) (IH : a < b ∨ a = b ∨ a > b),
+          show succ a < b ∨ succ a = b ∨ succ a > b, from IH.elim3
             (suppose a < b,
               have H : succ a ≤ b, from iff.mp lt_iff_succ_le this,
               by_cases
                 (suppose succ a = b, or.inr (or.inl this))
-                (suppose succ a ≠ b, or.inl (and.intro H this)))
+                (suppose succ a ≠ b, or.inl ⟨H, this⟩))
             (suppose a = b,
               have H₁ : succ a = b + succ 0, from calc
-                succ a = succ b : this
-                ... = succ b + 0 : add_zero_right
+                succ a = succ b : by rw this
+                ... = succ b + 0 : add_zero_right.symm
                 ... = succ (b + 0) : rfl
-                ... = b + succ 0 : add_succ_right,
+                ... = b + succ 0 : add_succ_right.symm,
               have H₂ : b ≠ succ a, from
                 suppose b = succ a,
                 have b + 0 = b + succ 0, from calc
@@ -389,49 +379,47 @@ namespace N
                   ... = succ a : this
                   ... = b + succ 0 : H₁,
                 have 0 = succ 0, from add_cancel this,
-                absurd this⁻¹ zero_ne_succ,
-              have succ a ≥ b, from exists.intro (succ 0) H₁,
-              have succ a > b, from and.intro this H₂,
+                absurd this.symm zero_ne_succ,
+              have succ a ≥ b, from ⟨succ 0, H₁⟩,
+              have succ a > b, from ⟨this, H₂⟩,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
                 or.inr (or.inr this))
             (suppose a > b,
-              obtain (n : N) (Hn : a = b + n), from and.left this,
+              let ⟨n, (Hn : a = b + n)⟩ := this.left in
               have b ≠ a, from and.right this,
               have H₁ : succ a = b + succ n, from calc
-                succ a = succ (b + n) : Hn
-                ... = b + succ n : add_succ_right,
+                succ a = succ (b + n) : by rw Hn
+                ... = b + succ n : add_succ_right.symm,
               have H₂ : b ≠ succ a, from
                 suppose b = succ a,
                 have succ a + 0 = succ a + succ n, from calc
-                  succ a + 0 = b + succ n + 0 : H₁
+                  succ a + 0 = b + succ n + 0 : by rw H₁
                   ... = b + succ n : add_zero_right
-                  ... = succ a + succ n : this,
+                  ... = succ a + succ n : by rw this,
                 have 0 = succ n, from add_cancel this,
-                absurd this⁻¹ zero_ne_succ,
-              have succ a ≥ b, from exists.intro (succ n) H₁,
-              have succ a > b, from and.intro this H₂,
+                absurd this.symm zero_ne_succ,
+              have succ a ≥ b, from ⟨succ n, H₁⟩,
+              have succ a > b, from ⟨this, H₂⟩,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
                 or.inr (or.inr this)))
 
-    proposition not_eq_and_lt : ¬ (a = b ∧ a < b) :=
+    theorem not_eq_and_lt : ¬ (a = b ∧ a < b) :=
       assume H : a = b ∧ a < b,
-      have a = b, from and.left H,
-      have a ≠ b, from and.right (and.right H),
-      absurd `a = b` `a ≠ b`
+      have a ≠ b, from H.right.right,
+      absurd H.left this
 
-    proposition not_eq_and_gt : ¬ (a = b ∧ a > b) :=
+    theorem not_eq_and_gt : ¬ (a = b ∧ a > b) :=
       assume H : a = b ∧ a > b,
-      have a = b, from and.left H,
-      have b ≠ a, from and.right (and.right H),
-      absurd `a = b`⁻¹ `b ≠ a`
+      have a ≠ b, from H.right.right.symm,
+      absurd H.left this
 
-    proposition not_lt_and_gt : ¬ (a < b ∧ a > b) :=
+    theorem not_lt_and_gt : ¬ (a < b ∧ a > b) :=
       assume H : a < b ∧ a > b,
-      have a ≤ b, from and.left (and.left H),
-      have a ≤ b ∧ a > b, from and.intro this (and.right H),
+      have a ≤ b ∧ a > b, from ⟨H.left.left, H.right⟩,
       absurd this not_le_and_gt
   end trichotomy
 
+/-
   -- Some more order properties
   section order_equivalence
     variables {a b : N}
