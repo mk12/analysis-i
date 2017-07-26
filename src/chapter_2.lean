@@ -447,7 +447,6 @@ namespace N
       @gt_iff_not_le b a
   end order_equivalence
 
-/-
   -- Proposition 2.2.14: Strong principle of induction
   section strong_induction
     parameters (p : N → Prop) (n₀ : N)
@@ -455,45 +454,38 @@ namespace N
     private definition q (n : N) : Prop :=
       ∀ m : N, m ≥ n₀ ∧ m < n → p m
 
-    proposition strong_induction (SI : ∀ {n : N}, n ≥ n₀ → q n → p n) :
+    theorem strong_induction (SI : ∀ {n : N}, n ≥ n₀ → q n → p n) :
         ∀ n : N, n ≥ n₀ → p n :=
-      take n : N,
-      have H : n ≥ n₀ → q n, from
-      proof induction_on n
+      assume n : N,
+      suffices H : n ≥ n₀ → q n, from
+        suppose n ≥ n₀,
+        show p n, from SI this (H this),
+      show n ≥ n₀ → q n, from induction_on n
         (show 0 ≥ n₀ → q 0, from
-          suppose 0 ≥ n₀,
-          take m : N,
-          suppose m ≥ n₀ ∧ m < 0,
-          absurd (and.right this) not_lt_zero)
-        (take n : N,
-          assume IH : n ≥ n₀ → q n,
+          assume (H₁ : 0 ≥ n₀) (m : N) (H₂ : m ≥ n₀ ∧ m < 0),
+          absurd H₂.right not_lt_zero)
+        (assume (n : N) (IH : n ≥ n₀ → q n),
           show succ n ≥ n₀ → q (succ n), from
-            assume H₁ : succ n ≥ n₀,
-            take m : N,
-            suppose m ≥ n₀ ∧ m < succ n,
-            have H₂ : m ≥ n₀, from and.left this,
-            have H₃ : m < succ n, from and.right this,
+            assume (H₁ : succ n ≥ n₀) (m : N) (H₂ : m ≥ n₀ ∧ m < succ n),
             show p m, from by_cases
               (suppose n₀ = succ n,
-                have m ≥ succ n, from this ▸ H₂,
-                have m < succ n ∧ m ≥ succ n, from and.intro H₃ this,
+                have m ≥ succ n, from this ▸ H₂.left,
+                have m < succ n ∧ m ≥ succ n, from ⟨H₂.right, this⟩,
                 absurd this not_lt_and_ge)
               (suppose n₀ ≠ succ n,
-                have succ n > n₀, from and.intro H₁ this,
+                have succ n > n₀, from ⟨H₁, this⟩,
                 have n ≥ n₀, from lt_succ_iff_le.mp this,
-                have q n, from IH this,
-                have p n, from SI `n ≥ n₀` this,
+                have Hqn : q n, from IH this,
+                have Hpn : p n, from SI this Hqn,
                 show p m, from by_cases
-                  (suppose n = m, this ▸ `p n`)
-                  (suppose n ≠ m,
-                    have m ≤ n, from lt_succ_iff_le.mp H₃,
-                    have m < n, from and.intro this (ne.symm `n ≠ m`),
-                    have m ≥ n₀ ∧ m < n, from and.intro H₂ this,
-                    show p m, from `q n` m this)))
-      qed,
-      suppose n ≥ n₀,
-      show p n, from SI this (H this)
+                  (suppose n = m, this ▸ Hpn)
+                  (assume H : n ≠ m,
+                    have m ≤ n, from lt_succ_iff_le.mp H₂.right,
+                    have m < n, from ⟨this, ne.symm H⟩,
+                    have m ≥ n₀ ∧ m < n, from ⟨H₂.left, this⟩,
+                    show p m, from Hqn m this)))
   end strong_induction
+/-
 
   -- Exercise 2.2.6: Backward principle of induction
   example (n : N) (p : N → Prop) (BI : ∀ m : N, p (succ m) → p m) (Hp : p n) :
