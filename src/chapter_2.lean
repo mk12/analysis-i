@@ -481,37 +481,35 @@ namespace N
                   (suppose n = m, this ▸ Hpn)
                   (assume H : n ≠ m,
                     have m ≤ n, from lt_succ_iff_le.mp H₂.right,
-                    have m < n, from ⟨this, ne.symm H⟩,
+                    have m < n, from ⟨this, H.symm⟩,
                     have m ≥ n₀ ∧ m < n, from ⟨H₂.left, this⟩,
                     show p m, from Hqn m this)))
   end strong_induction
-/-
 
   -- Exercise 2.2.6: Backward principle of induction
   example (n : N) (p : N → Prop) (BI : ∀ m : N, p (succ m) → p m) (Hp : p n) :
       ∀ m : N, m ≤ n → p m :=
     by_contradiction
       (suppose ¬ ∀ m : N, m ≤ n → p m,
-        have ∃ m : N, ¬ (m ≤ n → p m), from dm_exists_not this,
-        obtain (m : N) (H₁ : ¬ (m ≤ n → p m)), from this,
-        have m ≤ n ∧ ¬ p m, from and_not_of_not_implies H₁,
-        obtain (d : N) (H₂ : n = m + d), from and.left this,
-        have H₃ : ¬ p m, from and.right this,
+        let ⟨m, (H₁ : ¬ (m ≤ n → p m))⟩ := dm_exists_not this in
+        have m ≤ n ∧ ¬ p m, from not_imp_iff_and_not.mp H₁,
+        let ⟨d, (H₂ : n = m + d)⟩ := this.left in
+        have H₃ : ¬ p m, from this.right,
         have ¬ p (m + d), from induction_on d
-          (show ¬ p (m + 0), from add_zero_right⁻¹ ▸ H₃)
-          (take d : N,
-            assume IH : ¬ p (m + d),
+          (show ¬ p (m + 0), by rw add_zero_right; exact H₃)
+          (assume (d : N) (IH : ¬ p (m + d)),
             have p (succ (m + d)) → p (m + d), from BI (m + d),
             have ¬ p (succ (m + d)), from mt this IH,
-            show ¬ p (m + succ d), from add_succ_right⁻¹ ▸ this),
-        have ¬ p n, from H₂⁻¹ ▸ this,
+            show ¬ p (m + succ d), by rw add_succ_right; exact this),
+        have ¬ p n, from H₂.symm ▸ this,
         absurd Hp this)
 
   -- Definition 2.3.1: Multiplication of natural numbers
-  definition mul (n m : N) : N :=
-    recursive_def n 0 (λ n mul_n_m : N, mul_n_m + m)
-    -- TODO: use guards
+  definition mul : N → N → N
+    | 0 m := 0
+    | (succ n) m := mul n m + m
 
+/-
   -- Type class instances
   definition has_mul_N [instance] : has_mul N := has_mul.mk mul
   definition has_one_N [instance] : has_one N := has_one.mk (succ 0)
