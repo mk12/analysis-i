@@ -52,6 +52,7 @@ namespace N
     N.rec
 
   -- More convenient forms of Axiom 2.5
+  open N (cases_on)
   open N (renaming rec_on → induction_on)
 
   -- Proposition 2.1.16: Recursive definitions
@@ -75,7 +76,7 @@ namespace N
   -- Lemma 2.2.2
   lemma add_zero_right {n : N} : n + 0 = n :=
     induction_on n
-      (show zero + zero = zero, from rfl) -- can't use 0 for some reason
+      (show zero + 0 = 0, from rfl) -- can't use 0 for some reason
       (assume (n : N), assume (IH : n + 0 = n),
         show succ n + 0 = succ n, from calc
           succ n + 0 = succ (n + 0) : rfl
@@ -147,17 +148,13 @@ namespace N
         show pos (a + succ b), by rw add_succ_right; exact this)
 
   -- Corollary 2.2.9
-  theorem add_eq_zero {a b : N} (H : a + b = 0) : a = 0 ∧ b = 0 :=
-    by_contradiction
-      (suppose ¬(a = 0 ∧ b = 0),
-        have a ≠ 0 ∨ b ≠ 0, from dm_not_or_not this,
-        this.elim
-          (suppose a ≠ 0,
-            have a + b ≠ 0, from add_pos this,
-            absurd H this)
-          (suppose b ≠ 0,
-            have a + b ≠ 0, by rw add_comm; exact add_pos this,
-            absurd H this))
+  theorem add_eq_zero {a b : N} : a + b = 0 → a = 0 ∧ b = 0 :=
+    cases_on a
+      (suppose 0 + b = 0,
+        show zero = 0 ∧ b = 0, from ⟨rfl, this⟩) -- can't use 0 for some reason
+      (assume (a : N) (H : succ a + b = 0),
+        have succ (a + b) = 0, from H,
+        absurd this zero_ne_succ)
 
   -- Lemma 2.2.10
   lemma pos_pred {a : N} : pos a → ∃ b : N, succ b = a :=
