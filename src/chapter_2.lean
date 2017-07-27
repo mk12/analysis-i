@@ -6,6 +6,8 @@ import .common
 open classical (by_cases by_contradiction)
 open eq (symm)
 
+namespace chapter_2
+
 -- Definition 2.1.1: The natural numbers
 inductive N : Type
   | zero : N
@@ -712,3 +714,5 @@ namespace N
         by rw @add_assoc (a**2) (b * a) (a * b)
       ... = a**2 + 2 * a * b + b**2 : by rw this
 end N
+
+end chapter_2

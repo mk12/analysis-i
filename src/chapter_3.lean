@@ -3,7 +3,7 @@
 
 import .common .chapter_2
 
-open classical eq.ops sigma.ops
+namespace chapter_3
 
 -- A set is defined as a membership predicate
 definition set (X : Type) : Type := X → Prop
@@ -13,8 +13,8 @@ namespace set
   section basic
     variable {X : Type}
 
-    definition mem (x : X) (A : set X) : Prop := A x
-    definition empty : set X := λ x, false
+    def mem (x : X) (A : set X) : Prop := A x
+    def empty : set X := λ x, false
 
     infix ` ∈ ` := mem
     notation a ` ∉ ` s := ¬ mem a s
@@ -23,27 +23,25 @@ namespace set
 
   -- Universe class of objects
   universe Universe
-  constant Object : Type.{Universe}
-  abbreviation Set := set Object
+  constant Object : Type Universe
+  def Set : Type := set Object
 
   -- Axiom 3.1: Sets are objects
   example (A : Set) (B : set Set) : Prop := A ∈ B
 
   -- Definition 3.1.4: Equality of sets
-  proposition set_eq {A B : Set} : A = B ↔ ∀ x, x ∈ A ↔ x ∈ B :=
+  theorem set_eq {A B : Set} : A = B ↔ ∀ x, x ∈ A ↔ x ∈ B :=
     iff.intro
-      (suppose A = B,
-        take x,
+      (assume (H : A = B) x,
         show x ∈ A ↔ x ∈ B, from iff.intro
-          (suppose x ∈ A, `A = B` ▸ this)
-          (suppose x ∈ B, `A = B`⁻¹ ▸ this))
+          (suppose x ∈ A, H ▸ this)
+          (suppose x ∈ B, H.symm ▸ this))
       (suppose ∀ x, x ∈ A ↔ x ∈ B,
         have ∀ x, (x ∈ A) = (x ∈ B), from
-          take x,
-          have x ∈ A ↔ x ∈ B, from this x,
-          show (x ∈ A) = (x ∈ B), from eq.of_iff this,
+          assume x, (this x).to_eq,
         show A = B, from funext this)
 
+/-
   -- Introduction and elimination rules
   section intro_elim
     variables {A B : Set}
@@ -1145,4 +1143,8 @@ namespace set
   example {X : Set} : set Set := λ s, s ⊆ X
 
   -- Axiom 3.11: Union
+  
+  -/
 end set
+
+end chapter_3
