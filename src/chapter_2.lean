@@ -41,7 +41,7 @@ namespace N
     succ.inj
 
   -- Proposition 2.1.8: 6 is not equal to 2
-  example : num 6 ≠ num 2 := 
+  example : num 6 ≠ num 2 :=
     have num 4 ≠ num 0, from succ_ne_zero,
     have num 5 ≠ num 1, from mt succ_inj this,
     show num 6 ≠ num 2, from mt succ_inj this
@@ -295,7 +295,7 @@ namespace N
           have b = a + d', from succ_inj this,
           show a ≤ b, from ⟨d', this⟩)
         (suppose a ≤ b,
-          let ⟨n, (H : b = a + n)⟩ := this in 
+          let ⟨n, (H : b = a + n)⟩ := this in
           have succ b = a + succ n, from calc
             succ b = succ (a + n) : by rw H
             ... = a + succ n : add_succ_right.symm,
@@ -314,7 +314,7 @@ namespace N
 
     theorem not_lt_and_ge : ¬ (a < b ∧ a ≥ b) :=
       assume H : a < b ∧ a ≥ b,
-      let 
+      let
         ⟨n, (Hn : b = a + n)⟩ := H.left.left,
         ⟨m, (Hm : a = b + m)⟩ := H.right
       in
@@ -383,7 +383,7 @@ namespace N
                 or.inr (or.inr this))
             (suppose a > b,
               let ⟨n, (Hn : a = b + n)⟩ := this.left in
-              have b ≠ a, from and.right this,
+              have b ≠ a, from this.right,
               have H₁ : succ a = b + succ n, from calc
                 succ a = succ (b + n) : by rw Hn
                 ... = b + succ n : add_succ_right.symm,
@@ -596,8 +596,7 @@ namespace N
           a * (b + 0) = a * b : by rw @add_zero_right b
           ... = a * b + 0 : add_zero_right.symm
           ... = a * b + a * 0 : by rw @mul_zero_right a)
-        (take c : N,
-          assume IH : a * (b + c) = a * b + a * c,
+        (assume (c : N) (IH : a * (b + c) = a * b + a * c),
           show a * (b + succ c) = a * b + a * succ c, from calc
             a * (b + succ c) = a * succ (b + c) : by rw @add_succ_right b c
             ... = a * (b + c) + a : mul_succ_right
@@ -620,8 +619,7 @@ namespace N
         (0 * b) * c = 0 * c : rfl
         ... = 0 : rfl
         ... = 0 * (b * c) : rfl)
-      (take a : N,
-        assume IH : (a * b) * c = a * (b * c),
+      (assume (a : N) (IH : (a * b) * c = a * (b * c)),
         show (succ a * b) * c = succ a * (b * c), from calc
           (succ a * b) * c = (a * b + b) * c : rfl
           ... = (a * b) * c + b * c : right_distrib

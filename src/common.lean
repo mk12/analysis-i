@@ -3,11 +3,19 @@
 
 open classical (by_cases by_contradiction)
 
--- Classical double negation elimination
+-- Double negation elimination
 theorem not_not_elim {p : Prop} (H : ¬ ¬ p) : p :=
   by_cases
     (assume Hp : p, Hp)
     (assume Hnp : ¬ p, absurd Hnp H)
+
+-- Triple disjunction elimination
+namespace or
+  variables {a b c d : Prop}
+
+  theorem elim3 (H : a ∨ b ∨ c) (Ha : a → d) (Hb : b → d) (Hc : c → d) : d :=
+    H.elim Ha (suppose b ∨ c, this.elim Hb Hc)
+end or
 
 -- De Morgan's laws
 section de_morgan
@@ -99,11 +107,3 @@ section implies
         suppose a → b,
         absurd (this H.left) H.right)
 end implies
-
--- Disjunction helpers
-namespace or
-  variables {a b c d : Prop}
-  
-  theorem elim3 (H : a ∨ b ∨ c) (Ha : a → d) (Hb : b → d) (Hc : c → d) : d :=
-    H.elim Ha (suppose b ∨ c, this.elim Hb Hc)
-end or

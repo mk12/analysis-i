@@ -1066,7 +1066,7 @@ namespace set
       private definition ιY : Y => X ∪ Y := ι Y (X ∪ Y) Hy
 
       private definition p (h : X ∪ Y => Z) : Prop :=
-        h ∘ ιX = f ∧ h ∘ ιY = g 
+        h ∘ ιX = f ∧ h ∘ ιY = g
 
       example : ∃! h : X ∪ Y => Z, p h :=
         let h (a : Mem (X ∪ Y)) : Mem Z :=
