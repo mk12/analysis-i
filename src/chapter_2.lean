@@ -51,8 +51,7 @@ namespace N
       ∀ n : N, p n :=
     N.rec
 
-  -- More convenient forms of Axiom 2.5
-  open N (cases_on)
+  -- More convenient form of Axiom 2.5
   open N (renaming rec_on → induction_on)
 
   -- Proposition 2.1.16: Recursive definitions
@@ -148,13 +147,14 @@ namespace N
         show pos (a + succ b), by rw add_succ_right; exact this)
 
   -- Corollary 2.2.9
-  theorem add_eq_zero {a b : N} : a + b = 0 → a = 0 ∧ b = 0 :=
-    cases_on a
-      (suppose 0 + b = 0,
-        show zero = 0 ∧ b = 0, from ⟨rfl, this⟩) -- can't use 0 for some reason
-      (assume (a : N) (H : succ a + b = 0),
-        have succ (a + b) = 0, from H,
-        absurd this succ_ne_zero)
+  theorem add_eq_zero {a b : N} (H : a + b = 0) : a = 0 ∧ b = 0 :=
+    by_cases
+      (assume Ha : a = 0,
+        have b = 0, by rw Ha at H; exact H,
+        show a = 0 ∧ b = 0, from ⟨Ha, this⟩)
+      (suppose a ≠ 0,
+        have pos (a + b), from add_pos this,
+        absurd H this)
 
   -- Lemma 2.2.10
   lemma pos_pred {a : N} : pos a → ∃ b : N, succ b = a :=
