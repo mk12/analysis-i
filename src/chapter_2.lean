@@ -164,8 +164,8 @@ namespace N
         show ∃ b : N, succ b = succ a, from ⟨a, rfl⟩)
 
   -- Definition 2.2.11: Ordering of the natural numbers
-  definition le (n m : N) : Prop := ∃ a : N, m = n + a
-  definition lt (n m : N) : Prop := le n m ∧ n ≠ m
+  def le (n m : N) : Prop := ∃ a : N, m = n + a
+  def lt (n m : N) : Prop := le n m ∧ n ≠ m
 
   -- Type class instances
   instance : has_le N := ⟨le⟩
@@ -451,7 +451,7 @@ namespace N
   section strong_induction
     parameters (p : N → Prop) (n₀ : N)
 
-    private definition q (n : N) : Prop :=
+    private def q (n : N) : Prop :=
       ∀ m : N, m ≥ n₀ ∧ m < n → p m
 
     theorem strong_induction (SI : ∀ {n : N}, n ≥ n₀ → q n → p n) :
@@ -505,24 +505,22 @@ namespace N
         absurd Hp this)
 
   -- Definition 2.3.1: Multiplication of natural numbers
-  definition mul : N → N → N
+  def mul : N → N → N
     | 0 m := 0
     | (succ n) m := mul n m + m
 
-/-
   -- Type class instances
-  definition has_mul_N [instance] : has_mul N := has_mul.mk mul
-  definition has_one_N [instance] : has_one N := has_one.mk (succ 0)
+  instance : has_mul N := ⟨mul⟩
+  instance : has_one N := ⟨succ 0⟩
 
   -- Part of Exercise 2.3.1
   lemma mul_zero_right {n : N} : n * 0 = 0 :=
     induction_on n
-      (show 0 * 0 = 0, from rfl)
-      (take n : N,
-        assume IH : n * 0 = 0,
+      (show zero * 0 = 0, from rfl) -- can't use 0 for some reason
+      (assume (n : N) (IH : n * 0 = 0),
         show succ n * 0 = 0, from calc
           succ n * 0 = n * 0 + 0 : rfl
-          ... = 0 + 0 : IH
+          ... = 0 + 0 : by rw IH
           ... = 0 : rfl)
 
   -- Part of Exercise 2.3.1
@@ -532,16 +530,15 @@ namespace N
         0 * succ m = 0 : rfl
         ... = 0 + 0 : rfl
         ... = 0 * m + 0 : rfl)
-      (take n : N,
-        assume IH : n * succ m = n * m + n,
+      (assume (n : N) (IH : n * succ m = n * m + n),
         show succ n * succ m = succ n * m + succ n, from calc
           succ n * succ m = n * succ m + succ m : rfl
-          ... = n * m + n + succ m : IH
+          ... = n * m + n + succ m : by rw IH
           ... = n * m + (n + succ m) : add_assoc
-          ... = n * m + (succ m + n) : add_comm
+          ... = n * m + (succ m + n) : by rw @add_comm (succ m) n
           ... = n * m + succ (m + n) : rfl
-          ... = n * m + (m + succ n) : add_succ_right
-          ... = n * m + m + succ n : add_assoc
+          ... = n * m + (m + succ n) : by rw @add_succ_right m n
+          ... = n * m + m + succ n : add_assoc.symm
           ... = succ n * m + succ n : rfl)
 
   -- Lemma 2.3.2: Multiplication is commutative
@@ -549,13 +546,12 @@ namespace N
     induction_on n
       (show 0 * m = m * 0, from calc
         0 * m = 0 : rfl
-        ... = m * 0 : mul_zero_right)
-      (take n : N,
-        assume IH : n * m = m * n,
+        ... = m * 0 : mul_zero_right.symm)
+      (assume (n : N) (IH : n * m = m * n),
         show succ n * m = m * succ n, from calc
           succ n * m = n * m + m : rfl
-          ... = m * n + m : IH
-          ... = m * succ n : mul_succ_right)
+          ... = m * n + m : by rw IH
+          ... = m * succ n : mul_succ_right.symm)
 
   -- Lemma 2.3.3: Natural numbers have no zero divisors
   lemma mul_eq_zero {n m : N} : n * m = 0 ↔ n = 0 ∨ m = 0 :=
@@ -564,20 +560,24 @@ namespace N
         show n = 0 ∨ m = 0, from by_cases
           (suppose n = 0, or.inl this)
           (suppose n ≠ 0,
-            obtain (n' : N) (H₂ : succ n' = n), from pos_pred this,
+            let ⟨n', (H₂ : succ n' = n)⟩ := pos_pred this in
             have 0 = n' * m + m, from calc
-              0 = n * m : H₁
-              ... = succ n' * m : H₂
+              0 = n * m : H₁.symm
+              ... = succ n' * m : by rw H₂
               ... = n' * m + m : rfl,
-            have m = 0, from and.right (add_eq_zero this⁻¹),
+            have m = 0, from (add_eq_zero this.symm).right,
             show n = 0 ∨ m = 0, from or.inr this))
       (suppose n = 0 ∨ m = 0,
-        show n * m = 0, from or.elim this
-          (suppose n = 0, show n * m = 0, from this⁻¹ ▸ rfl)
-          (suppose m = 0, show n * m = 0, from this⁻¹ ▸ mul_zero_right))
+        show n * m = 0, from this.elim
+          (assume Hn : n = 0,
+            have 0 * m = 0, from rfl,
+            show n * m = 0, from Hn.symm ▸ this)
+          (assume Hm : m = 0,
+            have n * 0 = 0, from mul_zero_right,
+            show n * m = 0, from Hm.symm ▸ this))
 
   -- Alternative form of Lemma 2.3.3
-  corollary mul_pos {n m : N} : pos (n * m) ↔ pos n ∧ pos m :=
+  lemma mul_pos {n m : N} : pos (n * m) ↔ pos n ∧ pos m :=
     iff.intro
       (suppose pos (n * m),
         have ¬ (n = 0 ∨ m = 0), from mt mul_eq_zero.mpr this,
@@ -590,31 +590,31 @@ namespace N
   section distributive_law
     variables {a b c : N}
 
-    proposition left_distrib : a * (b + c) = a * b + a * c :=
+    theorem left_distrib : a * (b + c) = a * b + a * c :=
       induction_on c
         (show a * (b + 0) = a * b + a * 0, from calc
-          a * (b + 0) = a * b : add_zero_right
-          ... = a * b + 0 : add_zero_right
-          ... = a * b + a * 0 : mul_zero_right)
+          a * (b + 0) = a * b : by rw @add_zero_right b
+          ... = a * b + 0 : add_zero_right.symm
+          ... = a * b + a * 0 : by rw @mul_zero_right a)
         (take c : N,
           assume IH : a * (b + c) = a * b + a * c,
           show a * (b + succ c) = a * b + a * succ c, from calc
-            a * (b + succ c) = a * succ (b + c) : add_succ_right
+            a * (b + succ c) = a * succ (b + c) : by rw @add_succ_right b c
             ... = a * (b + c) + a : mul_succ_right
-            ... = a * b + a * c + a : IH
+            ... = a * b + a * c + a : by rw IH
             ... = a * b + (a * c + a) : add_assoc
-            ... = a * b + a * succ c : mul_succ_right)
+            ... = a * b + a * succ c : by rw @mul_succ_right a c)
 
-    proposition right_distrib : (b + c) * a = b * a + c * a :=
+    theorem right_distrib : (b + c) * a = b * a + c * a :=
       calc
         (b + c) * a = a * (b + c) : mul_comm
         ... = a * b + a * c : left_distrib
-        ... = b * a + a * c : mul_comm
-        ... = b * a + c * a : mul_comm
+        ... = b * a + a * c : by rw @mul_comm b a
+        ... = b * a + c * a : by rw @mul_comm c a
   end distributive_law
 
   -- Proposition 2.3.5: Multiplication is associative
-  proposition mul_assoc {a b c : N} : (a * b) * c = a * (b * c) :=
+  theorem mul_assoc {a b c : N} : (a * b) * c = a * (b * c) :=
     induction_on a
       (show (0 * b) * c = 0 * (b * c), from calc
         (0 * b) * c = 0 * c : rfl
@@ -625,71 +625,67 @@ namespace N
         show (succ a * b) * c = succ a * (b * c), from calc
           (succ a * b) * c = (a * b + b) * c : rfl
           ... = (a * b) * c + b * c : right_distrib
-          ... = a * (b * c) + b * c : IH
+          ... = a * (b * c) + b * c : by rw IH
           ... = succ a * (b * c) : rfl)
 
   -- Proposition 2.3.6: Multiplication preserves order
-  proposition mul_lt_mul {a b c : N} (H₁ : a < b) (H₂ : pos c) :
-      a * c < b * c :=
-    obtain (d : N) (Hd : b = a + d ∧ pos d), from iff.mp lt_iff_pos H₁,
+  theorem mul_lt_mul {a b c : N} (H₁ : a < b) (H₂ : pos c) : a * c < b * c :=
+    let ⟨d, (Hd : b = a + d ∧ pos d)⟩ := lt_iff_pos.mp H₁ in
     have H₃ : b * c = a * c + d * c, from calc
-      b * c = (a + d) * c : {and.left Hd}
+      b * c = (a + d) * c : by rw Hd.left
       ... = a * c + d * c : right_distrib,
-    have pos d ∧ pos c, from and.intro (and.right Hd) H₂,
-    have pos (d * c), from iff.mpr mul_pos this,
-    have b * c = a * c + d * c ∧ pos (d * c), from and.intro H₃ this,
-    show a * c < b * c, from iff.mpr lt_iff_pos (exists.intro (d * c) this)
+    have pos d ∧ pos c, from ⟨Hd.right, H₂⟩,
+    have pos (d * c), from mul_pos.mpr this,
+    show a * c < b * c, from lt_iff_pos.mpr ⟨d * c, ⟨H₃, this⟩⟩
 
   -- Corollary 2.3.7: Cancellation law
-  corollary mul_cancel {a b c : N} (H₁ : a * c = b * c) (H₂ : pos c) : a = b :=
-    or.elim3 trichotomy
+  theorem mul_cancel {a b c : N} (H₁ : a * c = b * c) (H₂ : pos c) : a = b :=
+    trichotomy.elim3
       (suppose a < b,
         have a * c < b * c, from mul_lt_mul this H₂,
-        absurd H₁ (and.right this))
+        absurd H₁ this.right)
       (suppose a = b, this)
       (suppose a > b,
         have a * c > b * c, from mul_lt_mul this H₂,
-        absurd H₁⁻¹ (and.right this))
+        absurd H₁ this.right.symm)
 
   -- Proposition 2.3.9: Euclidean algorithm
-  proposition euclid_alg {n q : N} (H : pos q) :
-      ∃ m r : N, r < q ∧ n = m * q + r :=
-    have 0 ≤ q, from exists.intro q rfl,
-    have 0 < q, from and.intro this (ne.symm H),
+  theorem euclid_alg {n q : N} (H : pos q) : ∃ m r : N, r < q ∧ n = m * q + r :=
+    have 0 ≤ q, from ⟨q, rfl⟩,
+    have H₀ : 0 < q, from ⟨this, H.symm⟩,
     induction_on n
       (show ∃ m r : N, r < q ∧ 0 = m * q + r, from
         have 0 = 0 * q + 0, from calc
           0 = 0 * q : rfl
-          ... = 0 * q + 0 : add_zero_right,
-        have 0 < q ∧ 0 = 0 * q + 0, from and.intro `0 < q` this,
-        exists.intro 0 (exists.intro 0 this))
-      (take n : N,
-        suppose ∃ m r : N, r < q ∧ n = m * q + r,
-        obtain (m r : N) (IH : r < q ∧ n = m * q + r), from this,
+          ... = 0 * q + 0 : add_zero_right.symm,
+        have 0 < q ∧ 0 = 0 * q + 0, from ⟨H₀, this⟩,
+        ⟨0, ⟨0, this⟩⟩)
+      (assume (n : N) (IH : ∃ m r : N, r < q ∧ n = m * q + r),
+        let ⟨m, ⟨r, (IH : r < q ∧ n = m * q + r)⟩⟩ := IH in
         show ∃ m r : N, r < q ∧ succ n = m * q + r, from by_cases
           (suppose succ r = q,
             have succ n = succ m * q + 0, from calc
-              succ n = succ (m * q + r) : {and.right IH}
-              ... = m * q + succ r : add_succ_right
-              ... = m * q + q : this
-              ... = q * m + q : mul_comm
-              ... = q * succ m : mul_succ_right
+              succ n = succ (m * q + r) : by rw IH.right
+              ... = m * q + succ r : add_succ_right.symm
+              ... = m * q + q : by rw this
+              ... = q * m + q : by rw @mul_comm q m
+              ... = q * succ m : mul_succ_right.symm
               ... = succ m * q : mul_comm
-              ... = succ m * q + 0 : add_zero_right,
-            have 0 < q ∧ succ n = succ m * q + 0, from and.intro `0 < q` this,
-            exists.intro (succ m) (exists.intro 0 this))
+              ... = succ m * q + 0 : add_zero_right.symm,
+            have 0 < q ∧ succ n = succ m * q + 0, from ⟨H₀, this⟩,
+            ⟨succ m, ⟨0, this⟩⟩)
           (suppose succ r ≠ q,
-            have succ r ≤ q, from iff.mp lt_iff_succ_le (and.left IH),
-            have LT : succ r < q, from and.intro this `succ r ≠ q`,
+            have LT : succ r < q, from ⟨lt_iff_succ_le.mp IH.left, this⟩,
             have succ n = m * q + succ r, from calc
-              succ n = succ (m * q + r) : {and.right IH}
-              ... = m * q + succ r : add_succ_right,
-            have succ r < q ∧ succ n = m * q + succ r, from and.intro LT this,
-            exists.intro m (exists.intro (succ r) this)))
+              succ n = succ (m * q + r) : by rw IH.right
+              ... = m * q + succ r : add_succ_right.symm,
+            have succ r < q ∧ succ n = m * q + succ r, from ⟨LT, this⟩,
+            ⟨m, ⟨succ r, this⟩⟩))
 
   -- Definition 2.3.11: Exponentiation for natural numbers
-  definition pow (n m : N) : N :=
-    recursive_def m 1 (λ x n_pow_x : N, n_pow_x * n)
+  def pow : N → N → N
+    | m 0 := 1
+    | m (succ n) := pow m n * m
 
   -- Can't use ^ because has_pow_nat requires nat
   infixr ` ** `:80 := pow
@@ -697,23 +693,24 @@ namespace N
   -- Exercise 2.3.4: Square of binomial
   example (a b : N) : (a + b)**2 = a**2 + 2 * a * b + b**2 :=
     have b * a + a * b = 2 * a * b, from calc
-      b * a + a * b = a * b + a * b : mul_comm
+      b * a + a * b = a * b + a * b : by rw @mul_comm a b
       ... = 0 + a * b + a * b : rfl
-      ... = a * b * 0 + a * b + a * b : mul_zero_right
-      ... = a * b * succ 0 + a * b : mul_succ_right
-      ... = a * b * succ (succ 0) : mul_succ_right
+      ... = a * b * 0 + a * b + a * b : by rw @mul_zero_right (a * b)
+      ... = a * b * succ 0 + a * b : by rw @mul_succ_right (a * b) 0
+      ... = a * b * succ (succ 0) : mul_succ_right.symm
       ... = a * b * 2 : rfl
       ... = 2 * (a * b) : mul_comm
-      ... = 2 * a * b : mul_assoc,
+      ... = 2 * a * b : mul_assoc.symm,
     show (a + b)**2 = a**2 + 2 * a * b + b**2, from calc
       (a + b)**2 = (a + b) * (a + b) : rfl
       ... = (a + b) * a + (a + b) * b : left_distrib
-      ... = a * a + b * a + (a + b) * b : right_distrib
-      ... = a * a + b * a + (a * b + b * b) : right_distrib
-      ... = a * a + b * a + a * b + b * b : add_assoc
+      ... = a * a + b * a + (a + b) * b : by rw @right_distrib a a b
+      ... = a * a + b * a + (a * b + b * b) : by rw @right_distrib b a b
+      ... = a * a + b * a + a * b + b * b :
+        by rw @add_assoc (a * a + b * a) (a * b) (b * b)
       ... = a**2 + b * a + a * b + b * b : rfl
       ... = a**2 + b * a + a * b + b**2 : rfl
-      ... = a**2 + (b * a + a * b) + b**2 : add_assoc
-      ... = a**2 + 2 * a * b + b**2 : this
-      -/
+      ... = a**2 + (b * a + a * b) + b**2 :
+        by rw @add_assoc (a**2) (b * a) (a * b)
+      ... = a**2 + 2 * a * b + b**2 : by rw this
 end N
