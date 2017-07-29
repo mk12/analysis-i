@@ -14,8 +14,9 @@ inductive N : Type
   | succ : N → N
 
 namespace N
-  -- Type class instance
+  -- Type class instances
   instance : has_zero N := ⟨zero⟩
+  instance : has_one N := ⟨succ zero⟩
 
   -- Axiom 2.1: 0 is a natural number
   example : N := 0
@@ -167,10 +168,8 @@ namespace N
 
   -- Definition 2.2.11: Ordering of the natural numbers
   def le (n m : N) : Prop := ∃ a : N, m = n + a
-  def lt (n m : N) : Prop := le n m ∧ n ≠ m
-
-  -- Type class instances
   instance : has_le N := ⟨le⟩
+  def lt (n m : N) : Prop := n ≤ m ∧ n ≠ m
   instance : has_lt N := ⟨lt⟩
 
   -- Proposition 2.2.12: Basic properties of order for natural numbers
@@ -366,20 +365,20 @@ namespace N
                 (suppose succ a = b, or.inr (or.inl this))
                 (suppose succ a ≠ b, or.inl ⟨H, this⟩))
             (suppose a = b,
-              have H₁ : succ a = b + succ 0, from calc
+              have H₁ : succ a = b + 1, from calc
                 succ a = succ b : by rw this
                 ... = succ b + 0 : add_zero_right.symm
                 ... = succ (b + 0) : rfl
-                ... = b + succ 0 : add_succ_right.symm,
+                ... = b + 1 : add_succ_right.symm,
               have H₂ : b ≠ succ a, from
                 suppose b = succ a,
-                have b + 0 = b + succ 0, from calc
+                have b + 0 = b + 1, from calc
                   b + 0 = b : add_zero_right
                   ... = succ a : this
-                  ... = b + succ 0 : H₁,
+                  ... = b + 1 : H₁,
                 have 0 = succ 0, from add_cancel this,
                 absurd this.symm succ_ne_zero,
-              have succ a ≥ b, from ⟨succ 0, H₁⟩,
+              have succ a ≥ b, from ⟨1, H₁⟩,
               have succ a > b, from ⟨this, H₂⟩,
               show succ a < b ∨ succ a = b ∨ succ a > b, from
                 or.inr (or.inr this))
@@ -511,9 +510,8 @@ namespace N
     | 0 m := 0
     | (succ n) m := mul n m + m
 
-  -- Type class instances
+  -- Type class instance
   instance : has_mul N := ⟨mul⟩
-  instance : has_one N := ⟨succ 0⟩
 
   -- Part of Exercise 2.3.1
   lemma mul_zero_right {n : N} : n * 0 = 0 :=
@@ -688,7 +686,7 @@ namespace N
     | m (succ n) := pow m n * m
 
   -- Can't use ^ because has_pow_nat requires nat
-  infixr ` ** `:80 := pow
+  infixr `**`:80 := pow
 
   -- Exercise 2.3.4: Square of binomial
   example (a b : N) : (a + b)**2 = a**2 + 2 * a * b + b**2 :=

@@ -1,30 +1,25 @@
 -- Copyright 2016 Mitchell Kember. Subject to the MIT ficense.
 -- Formalization of Analysis I: Chapter 3
 
-import .common .chapter_2
+import .common
+
+open classical (by_contradiction)
 
 namespace chapter_3
 
--- A set is defined as a membership predicate
-definition set (X : Type) : Type := X → Prop
+-- Definition 3.1.1: A set is an unordered collection of objects
+def set (α : Type) : Type := α → Prop
 
 namespace set
-  -- Basic definitions
-  section basic
-    variable {X : Type}
+section object
+  parameter Object : Type
 
-    def mem (x : X) (A : set X) : Prop := A x
-    def empty : set X := λ x, false
+  @[reducible]
+  def Set := set Object
 
-    infix ` ∈ ` := mem
-    notation a ` ∉ ` s := ¬ mem a s
-    notation `∅` := empty
-  end basic
-
-  -- Universe class of objects
-  universe Universe
-  constant Object : Type Universe
-  def Set : Type := set Object
+  -- Set membership
+  def mem (x : Object) (A : Set) : Prop := A x
+  instance : has_mem Object Set := ⟨mem⟩
 
   -- Axiom 3.1: Sets are objects
   example (A : Set) (B : set Set) : Prop := A ∈ B
@@ -41,30 +36,30 @@ namespace set
           assume x, (this x).to_eq,
         show A = B, from funext this)
 
-/-
   -- Introduction and elimination rules
   section intro_elim
     variables {A B : Set}
 
-    proposition set_eq_intro
+    theorem set_eq_intro
         (H₁ : ∀ x, x ∈ A → x ∈ B) (H₂ : ∀ x, x ∈ B → x ∈ A) : A = B :=
       have ∀ x, x ∈ A ↔ x ∈ B, from
-        take x,
-        iff.intro (H₁ x) (H₂ x),
-      show A = B, from iff.mpr set_eq this
+        assume x, ⟨H₁ x, H₂ x⟩,
+      show A = B, from set_eq.mpr this
 
-    proposition set_eq_elim : A = B → ∀ x, x ∈ A ↔ x ∈ B :=
-      iff.mp set_eq
+    theorem set_eq_elim : A = B → ∀ x, x ∈ A ↔ x ∈ B :=
+      set_eq.mp
   end intro_elim
 
   -- Axiom 3.2: Empty set
-  theorem not_in_empty {x : Object} : x ∉ ∅ := id
+  def empty : Set := λ _, false
+  instance : has_emptyc Set := ⟨empty⟩
+  theorem not_in_empty {x : Object} : x ∉ (∅ : Set) := id
 
   -- Convenient way of demonstrating emptiness
-  proposition no_elements {A : Set} (H : ∀ x, x ∉ A) : A = ∅ :=
+  theorem no_elements {A : Set} (H : ∀ x, x ∉ A) : A = ∅ :=
     set_eq_intro
-      (take x, suppose x ∈ A, absurd this (H x))
-      (take x, suppose x ∈ ∅, absurd this not_in_empty)
+      (assume x (Hx : x ∈ A), absurd Hx (H x))
+      (assume x (Hx : x ∈ ∅), absurd Hx not_in_empty)
 
   -- Lemma 3.1.6: Single choice
   lemma single_choice {A : Set} (H : A ≠ ∅) : ∃ x, x ∈ A :=
@@ -75,11 +70,11 @@ namespace set
         absurd this H)
 
   -- Axiom 3.3: Singleton sets
-  definition singleton (x) : Set := λ y, x = y
+  def singleton (x : Object) : Set := λ y, x = y
 
   -- Axiom 3.4: Pairwise union
-  definition union (A B : Set) : Set := λ x, x ∈ A ∨ x ∈ B
-  infix ` ∪ ` := union
+  def union (A B : Set) : Set := λ x, x ∈ A ∨ x ∈ B
+  instance : has_union Set := ⟨union⟩
 
   -- Lemma 3.1.12
   section union_properties
@@ -87,65 +82,63 @@ namespace set
 
     lemma union_comm : A ∪ B = B ∪ A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∪ B, or.swap this)
-        (take x, suppose x ∈ B ∪ A, or.swap this)
+        (assume x (H : x ∈ A ∪ B), H.swap)
+        (assume x (H : x ∈ B ∪ A), H.swap)
 
     lemma union_assoc : (A ∪ B) ∪ C = A ∪ (B ∪ C) :=
       set_eq_intro
-        (take x, suppose x ∈ (A ∪ B) ∪ C, iff.mp or.assoc this)
-        (take x, suppose x ∈ A ∪ (B ∪ C), iff.mpr or.assoc this)
+        (assume x (H : x ∈ (A ∪ B) ∪ C), or.assoc.mp H)
+        (assume x (H : x ∈ A ∪ (B ∪ C)), or.assoc.mpr H)
 
     lemma union_idemp : A ∪ A = A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∪ A, or.elim this id id)
-        (take x, suppose x ∈ A, or.inl this)
+        (assume x (H : x ∈ A ∪ A), H.elim id id)
+        (assume x (H : x ∈ A), or.inl H)
 
     lemma union_empty : A ∪ ∅ = A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∪ ∅, or.elim this id false.elim)
-        (take x, suppose x ∈ A, or.inl this)
+        (assume x (H : x ∈ A ∪ ∅), H.elim id false.elim)
+        (assume x (H : x ∈ A), or.inl H)
   end union_properties
 
   -- Definition 3.1.14: Subsets
   definition subset (A B : Set) : Prop := ∀ {{x}}, x ∈ A → x ∈ B
-  infix ` ⊆ ` := subset
+  instance : has_subset Set := ⟨subset⟩
   definition proper_subset (A B : Set) : Prop := A ⊆ B ∧ A ≠ B
-  infix ` ⊂ `:50 := proper_subset
+  instance : has_ssubset Set := ⟨proper_subset⟩
 
   -- Proposition 3.1.17: Sets are partially ordered by set inclusion
   section subset_properties
     variables {A B C : Set}
 
-    proposition subset_of_eq (H : A = B) : A ⊆ B :=
-      take a,
-      suppose a ∈ A,
-      show a ∈ B, from H ▸ this
+    theorem subset_of_eq (H : A = B) : A ⊆ B :=
+      assume a (Ha : a ∈ A),
+      show a ∈ B, from H ▸ Ha
 
-    proposition subset_rfl : A ⊆ A := subset_of_eq rfl
+    theorem subset_rfl : A ⊆ A := subset_of_eq rfl
 
-    proposition subset_antisymm (H₁ : A ⊆ B) (H₂ : B ⊆ A) : A = B :=
+    theorem subset_antisymm (H₁ : A ⊆ B) (H₂ : B ⊆ A) : A = B :=
       set_eq_intro H₁ H₂
 
-    proposition subset_trans (H₁ : A ⊆ B) (H₂ : B ⊆ C) : A ⊆ C :=
-      take a,
-      suppose a ∈ A,
-      have a ∈ B, from H₁ this,
+    theorem subset_trans (H₁ : A ⊆ B) (H₂ : B ⊆ C) : A ⊆ C :=
+      assume a (Ha : a ∈ A),
+      have a ∈ B, from H₁ Ha,
       show a ∈ C, from H₂ this
 
-    proposition psubset_trans (H₁ : A ⊂ B) (H₂ : B ⊂ C) : A ⊂ C :=
-      have H₁' : A ⊆ B, from and.left H₁,
-      have H₂' : B ⊆ C, from and.left H₂,
-      have A ⊆ C, from subset_trans H₁' H₂',
+    theorem proper_subset_trans (H₁ : A ⊂ B) (H₂ : B ⊂ C) : A ⊂ C :=
+      have H₁' : A ⊆ B, from H₁.left,
+      have H₂' : B ⊆ C, from H₂.left,
       have A ≠ C, from
         suppose A = C,
-        have H₃ : C ⊆ A, from subset_of_eq this⁻¹,
+        have H₃ : C ⊆ A, from subset_of_eq this.symm,
         have A = B, from set_eq_intro
-          (take x, suppose x ∈ A, H₁' this)
-          (take x, suppose x ∈ B, H₃ (H₂' this)),
-        absurd this (and.right H₁),
-      show A ⊂ C, from and.intro `A ⊆ C` `A ≠ C`
+          (assume x (Hx : x ∈ A), H₁' Hx)
+          (assume x (Hx : x ∈ B), H₃ (H₂' Hx)),
+        absurd this H₁.right,
+      show A ⊂ C, from ⟨subset_trans H₁' H₂', this⟩
   end subset_properties
 
+/-
   -- Axiom 3.5: Axiom of specification
   definition specify (A : Set) (P : Object → Prop) : Set := λ x, x ∈ A ∧ P x
 
@@ -1143,8 +1136,9 @@ namespace set
   example {X : Set} : set Set := λ s, s ⊆ X
 
   -- Axiom 3.11: Union
-  
   -/
+
+end object
 end set
 
 end chapter_3
