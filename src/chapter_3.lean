@@ -1,9 +1,9 @@
 -- Copyright 2016 Mitchell Kember. Subject to the MIT ficense.
 -- Formalization of Analysis I: Chapter 3
 
-import .common
+import .common .chapter_2
 
-open classical (by_contradiction)
+open classical (by_cases by_contradiction)
 
 namespace chapter_3
 
@@ -138,192 +138,157 @@ section object
       show A ⊂ C, from ⟨subset_trans H₁' H₂', this⟩
   end subset_properties
 
-/-
   -- Axiom 3.5: Axiom of specification
-  definition specify (A : Set) (P : Object → Prop) : Set := λ x, x ∈ A ∧ P x
+  def specify (A : Set) (p : Object → Prop) : Set := λ x, x ∈ A ∧ p x
 
   -- Definition 3.1.22: Intersections
-  definition inter (A B : Set) : Set := λ x, x ∈ A ∧ x ∈ B
-  infix ` ∩ ` := inter
+  def inter (A B : Set) : Set := λ x, x ∈ A ∧ x ∈ B
+  instance : has_inter Set := ⟨inter⟩
 
   -- Definition 3.1.26: Difference sets
-  definition diff (A B : Set) : Set := λ x, x ∈ A ∧ x ∉ B
-  infix ` \ `:70 := diff
+  def diff (A B : Set) : Set := λ x, x ∈ A ∧ x ∉ B
+  instance : has_sdiff Set := ⟨diff⟩
 
   -- Proposition 3.1.27: Sets form a boolean algebra
   section boolean_algebra
     variables {A B C X : Set}
-    premises (HA : A ⊆ X) (HB : B ⊆ X) (HC : C ⊆ X)
+    variables (HA : A ⊆ X) (HB : B ⊆ X) (HC : C ⊆ X)
 
     -- Minimal element
 
     example : A ∪ ∅ = A := union_empty
 
-    proposition inter_empty : A ∩ ∅ = ∅ :=
+    theorem inter_empty : A ∩ ∅ = ∅ :=
       no_elements
-        (take x, suppose x ∈ A ∩ ∅, absurd (and.right this) not_in_empty)
+        (assume x (Hx : x ∈ A ∩ ∅), absurd Hx.right not_in_empty)
 
     -- Maximal element
 
-    proposition union_super : A ∪ X = X :=
+    theorem union_super : A ∪ X = X :=
       set_eq_intro
-        (take x, suppose x ∈ A ∪ X, or.elim this !HA id)
-        (take x, suppose x ∈ X, or.inr this)
+        (assume x (Hx : x ∈ A ∪ X), Hx.elim (@HA x) id)
+        (assume x (Hx : x ∈ X), or.inr Hx)
 
-    proposition inter_super : A ∩ X = A :=
+    theorem inter_super : A ∩ X = A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∩ X, and.left this)
-        (take x, suppose x ∈ A, and.intro this (HA this))
+        (assume x (Hx : x ∈ A ∩ X), Hx.left)
+        (assume x (Hx : x ∈ A), ⟨Hx, HA Hx⟩)
 
     -- Identity
 
     example : A ∪ A = A := union_idemp
 
-    proposition inter_idemp : A ∩ A = A :=
+    theorem inter_idemp : A ∩ A = A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∩ A, and.left this)
-        (take x, suppose x ∈ A, and.intro this this)
+        (assume x (Hx : x ∈ A ∩ A), Hx.left)
+        (assume x (Hx : x ∈ A), ⟨Hx, Hx⟩)
 
     -- Commutativity
 
     example : A ∪ B = B ∪ A := union_comm
 
-    proposition inter_comm : A ∩ B = B ∩ A :=
+    theorem inter_comm : A ∩ B = B ∩ A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∩ B, and.swap this)
-        (take x, suppose x ∈ B ∩ A, and.swap this)
+        (assume x (Hx : x ∈ A ∩ B), Hx.swap)
+        (assume x (Hx : x ∈ B ∩ A), Hx.swap)
 
     -- Associativity
 
     example : (A ∪ B) ∪ C = A ∪ (B ∪ C) := union_assoc
 
-    proposition inter_assoc : (A ∩ B) ∩ C = A ∩ (B ∩ C) :=
+    theorem inter_assoc : (A ∩ B) ∩ C = A ∩ (B ∩ C) :=
       set_eq_intro
-        (take x, suppose x ∈ (A ∩ B) ∩ C, iff.mp and.assoc this)
-        (take x, suppose x ∈ A ∩ (B ∩ C), iff.mpr and.assoc this)
+        (assume x (Hx : x ∈ (A ∩ B) ∩ C), and.assoc.mp Hx)
+        (assume x (Hx : x ∈ A ∩ (B ∩ C)), and.assoc.mpr Hx)
 
     -- Distributivity
 
-    proposition union_distrib : A ∪ (B ∩ C) = (A ∪ B) ∩ (A ∪ C) :=
+    theorem union_distrib : A ∪ (B ∩ C) = (A ∪ B) ∩ (A ∪ C) :=
       set_eq_intro
-        (take x,
-          suppose x ∈ A ∪ (B ∩ C),
-          show x ∈ (A ∪ B) ∩ (A ∪ C), from or.elim this
-            (suppose x ∈ A, and.intro (or.inl this) (or.inl this))
-            (suppose x ∈ B ∩ C,
-              have H₁ : x ∈ (A ∪ B), from or.inr (and.left this),
-              have H₂ : x ∈ (A ∪ C), from or.inr (and.right this),
-              show x ∈ (A ∪ B) ∩ (A ∪ C), from and.intro H₁ H₂))
-        (take x,
-          suppose x ∈ (A ∪ B) ∩ (A ∪ C),
-          have H₁ : x ∈ A ∪ B, from and.left this,
-          have H₂ : x ∈ A ∪ C, from and.right this,
+        (assume x (Hx : x ∈ A ∪ (B ∩ C)),
+          show x ∈ (A ∪ B) ∩ (A ∪ C), from Hx.elim
+            (suppose x ∈ A, ⟨or.inl this, or.inl this⟩)
+            (suppose x ∈ B ∩ C, ⟨or.inr this.left, or.inr this.right⟩))
+        (assume x (Hx : x ∈ (A ∪ B) ∩ (A ∪ C)),
           show x ∈ A ∪ (B ∩ C), from by_cases
             (suppose x ∈ A, or.inl this)
             (suppose x ∉ A,
-              have x ∈ B, from or.resolve_left H₁ `x ∉ A`,
-              have x ∈ C, from or.resolve_left H₂ `x ∉ A`,
-              have x ∈ B ∩ C, from and.intro `x ∈ B` `x ∈ C`,
-              show x ∈ A ∪ (B ∩ C), from or.inr this))
+              have H₁ : x ∈ B, from Hx.left.resolve_left this,
+              have H₂ : x ∈ C, from Hx.right.resolve_left this,
+              show x ∈ A ∪ (B ∩ C), from or.inr ⟨H₁, H₂⟩))
 
-    proposition inter_distrib : A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) :=
+    theorem inter_distrib : A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) :=
       set_eq_intro
-        (take x,
-          suppose x ∈ A ∩ (B ∪ C),
-          have H₁ : x ∈ A, from and.left this,
-          have H₂ : x ∈ B ∪ C, from and.right this,
-          show x ∈ (A ∩ B) ∪ (A ∩ C), from or.elim H₂
-            (suppose x ∈ B, or.inl (and.intro H₁ this))
-            (suppose x ∈ C, or.inr (and.intro H₁ this)))
-        (take x,
-          suppose x ∈ (A ∩ B) ∪ (A ∩ C),
-          show x ∈ A ∩ (B ∪ C), from or.elim this
-            (suppose x ∈ A ∩ B,
-              have H₁ : x ∈ A, from and.left this,
-              have H₂ : x ∈ B, from and.right this,
-              show x ∈ A ∩ (B ∪ C), from and.intro H₁ (or.inl H₂))
-            (suppose x ∈ A ∩ C,
-              have H₁ : x ∈ A, from and.left this,
-              have H₂ : x ∈ C, from and.right this,
-              show x ∈ A ∩ (B ∪ C), from and.intro H₁ (or.inr H₂)))
+        (assume x (Hx : x ∈ A ∩ (B ∪ C)),
+          show x ∈ (A ∩ B) ∪ (A ∩ C), from Hx.right.elim
+            (suppose x ∈ B, or.inl ⟨Hx.left, this⟩)
+            (suppose x ∈ C, or.inr ⟨Hx.left, this⟩))
+        (assume x (Hx : x ∈ (A ∩ B) ∪ (A ∩ C)),
+          show x ∈ A ∩ (B ∪ C), from Hx.elim
+            (suppose x ∈ A ∩ B, ⟨this.left, or.inl this.right⟩)
+            (suppose x ∈ A ∩ C, ⟨this.left, or.inr this.right⟩))
 
     -- Partition
 
-    proposition union_partition : A ∪ (X \ A) = X :=
+    theorem union_partition : A ∪ (X \ A) = X :=
       set_eq_intro
-        (take x,
-          suppose x ∈ A ∪ (X \ A),
-          show x ∈ X, from or.elim this !HA and.left)
-        (take x,
-          suppose x ∈ X,
+        (assume x (Hx : x ∈ A ∪ (X \ A)),
+          show x ∈ X, from or.elim Hx (@HA x) and.left)
+        (assume x (Hx : x ∈ X),
           show x ∈ A ∪ (X \ A), from by_cases
             (suppose x ∈ A, or.inl this)
-            (suppose x ∉ A, or.inr (and.intro `x ∈ X` this)))
+            (suppose x ∉ A, or.inr ⟨Hx, this⟩))
 
-    proposition inter_partition : A ∩ (X \ A) = ∅ :=
+    theorem inter_partition : A ∩ (X \ A) = ∅ :=
       no_elements
-        (take x,
-          assume H : x ∈ A ∩ (X \ A),
-          have x ∈ A, from and.left H,
-          have x ∉ A, from and.right (and.right H),
-          absurd `x ∈ A` `x ∉ A`)
+        (assume x (Hx : x ∈ A ∩ (X \ A)),
+          absurd Hx.left Hx.right.right)
 
     -- De Morgan laws
 
-    proposition union_dm : X \ (A ∪ B) = (X \ A) ∩ (X \ B) :=
+    theorem union_dm : X \ (A ∪ B) = (X \ A) ∩ (X \ B) :=
       set_eq_intro
-        (take x,
-          suppose x ∈ X \ (A ∪ B),
-          have H₁ : x ∈ X, from and.left this,
-          have x ∉ A ∪ B, from and.right this,
-          have H₂ : x ∉ A ∧ x ∉ B, from dm_not_and_not this,
-          have H₃ : x ∈ X \ A, from and.intro H₁ (and.left H₂),
-          have H₄ : x ∈ X \ B, from and.intro H₁ (and.right H₂),
-          show x ∈ (X \ A) ∩ (X \ B), from and.intro H₃ H₄)
-        (take x,
-          suppose x ∈ (X \ A) ∩ (X \ B),
-          have H₁ : x ∈ X, from and.left (and.left this),
-          have H₂ : x ∉ A, from and.right (and.left this),
-          have H₃ : x ∉ B, from and.right (and.right this),
-          have x ∉ A ∪ B, from dm_not_or (and.intro H₂ H₃),
-          show x ∈ X \ (A ∪ B), from and.intro H₁ this)
+        (assume x (Hx : x ∈ X \ (A ∪ B)),
+          have x ∉ A ∧ x ∉ B, from dm_not_and_not Hx.right,
+          have H₁ : x ∈ X \ A, from ⟨Hx.left, this.left⟩,
+          have H₂ : x ∈ X \ B, from ⟨Hx.left, this.right⟩,
+          show x ∈ (X \ A) ∩ (X \ B), from ⟨H₁, H₂⟩)
+        (assume x (Hx : x ∈ (X \ A) ∩ (X \ B)),
+          have x ∉ A ∧ x ∉ B, from ⟨Hx.left.right, Hx.right.right⟩,
+          have x ∉ A ∪ B, from dm_not_or this,
+          show x ∈ X \ (A ∪ B), from ⟨Hx.left.left, this⟩)
 
-    proposition inter_dm : X \ (A ∩ B) = (X \ A) ∪ (X \ B) :=
+    theorem inter_dm : X \ (A ∩ B) = (X \ A) ∪ (X \ B) :=
       set_eq_intro
-        (take x,
-          assume H : x ∈ X \ (A ∩ B),
-          have x ∈ X, from and.left H,
-          have x ∉ A ∨ x ∉ B, from dm_not_or_not (and.right H),
-          show x ∈ (X \ A) ∪ (X \ B), from or.elim this
-            (suppose x ∉ A, or.inl (and.intro `x ∈ X` this))
-            (suppose x ∉ B, or.inr (and.intro `x ∈ X` this)))
-        (take x,
-          suppose x ∈ (X \ A) ∪ (X \ B),
-          show x ∈ X \ (A ∩ B), from or.elim this
+        (assume x (Hx : x ∈ X \ (A ∩ B)),
+          have x ∉ A ∨ x ∉ B, from dm_not_or_not Hx.right,
+          show x ∈ (X \ A) ∪ (X \ B), from this.elim
+            (suppose x ∉ A, or.inl ⟨Hx.left, this⟩)
+            (suppose x ∉ B, or.inr ⟨Hx.left, this⟩))
+        (assume x (Hx : x ∈ (X \ A) ∪ (X \ B)),
+          show x ∈ X \ (A ∩ B), from Hx.elim
             (suppose x ∈ X \ A,
-              have H₁ : x ∈ X, from and.left this,
-              have x ∉ A, from and.right this,
-              have x ∉ A ∨ x ∉ B, from or.inl this,
-              have H₂ : x ∉ A ∩ B, from dm_not_and this,
-              show x ∈ X \ (A ∩ B), from and.intro H₁ H₂)
+              have H₁ : x ∈ X, from this.left,
+              have x ∉ A ∨ x ∉ B, from or.inl this.right,
+              have x ∉ A ∩ B, from dm_not_and this,
+              show x ∈ X \ (A ∩ B), from ⟨H₁, this⟩)
             (suppose x ∈ X \ B,
-              have H₁ : x ∈ X, from and.left this,
-              have x ∉ B, from and.right this,
-              have x ∉ A ∨ x ∉ B, from or.inr this,
-              have H₂ : x ∉ A ∩ B, from dm_not_and this,
-              show x ∈ X \ (A ∩ B), from and.intro H₁ H₂))
+              have H₁ : x ∈ X, from this.left,
+              have x ∉ A ∨ x ∉ B, from or.inr this.right,
+              have x ∉ A ∩ B, from dm_not_and this,
+              show x ∈ X \ (A ∩ B), from ⟨H₁, this⟩))
   end boolean_algebra
 
   -- Axiom 3.6: Replacement
-  definition replace (A : Set) (P : Object → Object → Prop) : Set :=
-    λ y, ∃ x, x ∈ A ∧ P x y
+  def replace (A : Set) (p : Object → Object → Prop) : Set :=
+    λ y, ∃ x, x ∈ A ∧ p x y
 
   -- More convenient form of Axiom 3.6
-  definition map (A : Set) (f : Object → Object) : Set :=
+  def map (A : Set) (f : Object → Object) : Set :=
     replace A (λ x y, y = f x)
 
   -- Axiom 3.7: Infinity
-  definition infinity : set N := λ x, true
+  def infinity : set chapter_2.N := λ x, true
 
   -- Exercise 3.1.1
   section equivalence
@@ -331,25 +296,26 @@ section object
 
     -- Reflexive
     example : A = A :=
-      let f := take x, id in set_eq_intro f f
+      set_eq_intro
+        (assume x (Hx : x ∈ A), Hx)
+        (assume x (Hx : x ∈ A), Hx)
 
     -- Symmetric
     example (H : A = B) : B = A :=
       have ∀ x, x ∈ B ↔ x ∈ A, from
-        take x,
-        have x ∈ A ↔ x ∈ B, from set_eq_elim H x,
-        show x ∈ B ↔ x ∈ A, from iff.symm this,
-      show B = A, from iff.mpr set_eq this
+        assume x, (set_eq_elim H x).symm,
+      show B = A, from set_eq.mpr this
 
     -- Transitive
     example (H₁ : A = B) (H₂ : B = C) : A = C :=
       have H₁' : ∀ {x}, x ∈ A ↔ x ∈ B, from set_eq_elim H₁,
       have H₂' : ∀ {x}, x ∈ B ↔ x ∈ C, from set_eq_elim H₂,
       show A = C, from set_eq_intro
-        (take x, suppose x ∈ A, iff.mp H₂' (iff.mp H₁' this))
-        (take x, suppose x ∈ C, iff.mpr H₁' (iff.mpr H₂' this))
+        (assume x (Hx : x ∈ A), H₂'.mp (H₁'.mp Hx))
+        (assume x (Hx : x ∈ C), H₁'.mpr (H₂'.mpr Hx))
   end equivalence
 
+/-
   -- Exercise 3.1.5
   section
     variables {A B : Set}
