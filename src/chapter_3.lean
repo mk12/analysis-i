@@ -315,7 +315,6 @@ section object
         (assume x (Hx : x ∈ C), H₁'.mpr (H₂'.mpr Hx))
   end equivalence
 
-/-
   -- Exercise 3.1.5
   section
     variables {A B : Set}
@@ -323,94 +322,78 @@ section object
     -- (1) → (2)
     example (H : A ⊆ B) : A ∪ B = B :=
       set_eq_intro
-        (take x, suppose x ∈ A ∪ B, or.elim this !H id)
-        (take x, suppose x ∈ B, or.inr this)
+        (assume x (Hx : x ∈ A ∪ B), or.elim Hx (@H x) id)
+        (assume x (Hx : x ∈ B), or.inr Hx)
 
     -- (2) → (3)
     example (H : A ∪ B = B) : A ∩ B = A :=
       have H' : A ∪ B ⊆ B, from subset_of_eq H,
       set_eq_intro
-        (take x, suppose x ∈ A ∩ B, and.left this)
-        (take x, suppose x ∈ A, and.intro this (H' (or.inl this)))
+        (assume x (Hx : x ∈ A ∩ B), Hx.left)
+        (assume x (Hx : x ∈ A), ⟨Hx, H' (or.inl Hx)⟩)
 
     -- (3) → (1)
     example (H : A ∩ B = A) : A ⊆ B :=
-      have H' : A ⊆ A ∩ B, from subset_of_eq H⁻¹,
-      take x,
-      suppose x ∈ A,
-      have x ∈ A ∩ B, from H' this,
-      show x ∈ B, from and.right this
+      have H' : A ⊆ A ∩ B, from subset_of_eq H.symm,
+      assume x (Hx : x ∈ A),
+      have x ∈ A ∩ B, from H' Hx,
+      show x ∈ B, from this.right
   end
 
   -- Exercise 3.1.7
   section
     variables {A B C : Set}
 
-    proposition inter_subset_left : A ∩ B ⊆ A :=
-      take x,
-      suppose x ∈ A ∩ B,
-      show x ∈ A, from and.left this
+    theorem inter_subset_left : A ∩ B ⊆ A :=
+      assume x (Hx : x ∈ A ∩ B),
+      show x ∈ A, from Hx.left
 
-    proposition inter_subset_right : A ∩ B ⊆ B :=
-      take x,
-      suppose x ∈ A ∩ B,
-      show x ∈ B, from and.right this
+    theorem inter_subset_right : A ∩ B ⊆ B :=
+      assume x (Hx : x ∈ A ∩ B),
+      show x ∈ B, from Hx.right
 
     example : C ⊆ A ∧ C ⊆ B ↔ C ⊆ A ∩ B :=
       iff.intro
-        (suppose C ⊆ A ∧ C ⊆ B,
-          have H₁ : C ⊆ A, from and.left this,
-          have H₂ : C ⊆ B, from and.right this,
+        (assume H : C ⊆ A ∧ C ⊆ B,
           show C ⊆ A ∩ B, from
-            take x,
-            suppose x ∈ C,
-            show x ∈ A ∧ x ∈ B, from and.intro (H₁ this) (H₂ this))
-        (suppose H : C ⊆ A ∩ B,
-          have C ⊆ A, from
-            take x,
-            suppose x ∈ C,
-            have x ∈ A ∩ B, from H this,
-            show x ∈ A, from and.left this,
-          have C ⊆ B, from
-            take x,
-            suppose x ∈ C,
-            have x ∈ A ∩ B, from H this,
-            show x ∈ B, from and.right this,
-          show C ⊆ A ∧ C ⊆ B, from and.intro `C ⊆ A` `C ⊆ B`)
+            assume x (Hx : x ∈ C),
+            show x ∈ A ∧ x ∈ B, from ⟨H.left Hx, H.right Hx⟩)
+        (assume H : C ⊆ A ∩ B,
+          have H₁ : C ⊆ A, from
+            assume x (Hx : x ∈ C),
+            show x ∈ A, from (H Hx).left,
+          have H₂ : C ⊆ B, from
+            assume x (Hx : x ∈ C),
+            show x ∈ B, from (H Hx).right,
+          show C ⊆ A ∧ C ⊆ B, from ⟨H₁, H₂⟩)
 
-    proposition subset_union_left : A ⊆ A ∪ B :=
-      take x,
-      suppose x ∈ A,
-      show x ∈ A ∪ B, from or.inl this
+    theorem subset_union_left : A ⊆ A ∪ B :=
+      assume x (Hx : x ∈ A),
+      show x ∈ A ∪ B, from or.inl Hx
 
-    proposition subset_union_right : B ⊆ A ∪ B :=
-      take x,
-      suppose x ∈ B,
-      show x ∈ A ∪ B, from or.inr this
+    theorem subset_union_right : B ⊆ A ∪ B :=
+      assume x (Hx : x ∈ B),
+      show x ∈ A ∪ B, from or.inr Hx
 
     example : A ⊆ C ∧ B ⊆ C ↔ A ∪ B ⊆ C :=
       iff.intro
         (assume H : A ⊆ C ∧ B ⊆ C,
           show A ∪ B ⊆ C, from
-            take x,
-            suppose x ∈ A ∪ B,
-            show x ∈ C, from or.elim this
-              (suppose x ∈ A, and.left H x this)
-              (suppose x ∈ B, and.right H x this))
+            assume x (Hx : x ∈ A ∪ B),
+            show x ∈ C, from or.elim Hx
+              (suppose x ∈ A, H.left this)
+              (suppose x ∈ B, H.right this))
         (assume H : A ∪ B ⊆ C,
-          have A ⊆ C, from
-            take x,
-            suppose x ∈ A,
-            have x ∈ A ∪ B, from or.inl this,
-            show x ∈ C, from H this,
-          have B ⊆ C, from
-            take x,
-            suppose x ∈ B,
-            have x ∈ A ∪ B, from or.inr this,
-            show x ∈ C, from H this,
-          show A ⊆ C ∧ B ⊆ C, from and.intro `A ⊆ C` `B ⊆ C`)
+          have H₁ : A ⊆ C, from
+            assume x (Hx : x ∈ A),
+            show x ∈ C, from H (or.inl Hx),
+          have H₂ : B ⊆ C, from
+            assume x (Hx : x ∈ B),
+            show x ∈ C, from H (or.inr Hx),
+          show A ⊆ C ∧ B ⊆ C, from ⟨H₁, H₂⟩)
   end
 
+/-
   -- Exercise 3.1.8
   section absorption
     variables {A B : Set}
