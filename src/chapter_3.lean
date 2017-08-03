@@ -3,7 +3,7 @@
 
 import .common .chapter_2
 
-open classical (by_cases by_contradiction)
+open classical (by_cases by_contradiction some some_spec)
 
 namespace chapter_3
 
@@ -505,34 +505,34 @@ section object
       show x ∉ B, from not_in_disjoint_left this H₂
   end misc
 
-/-
-  -- Convert Set to Type using dependent pairs
-  definition Mem (X : Set) : Type := Σ x, x ∈ X
+  -- Dependent pair type for an object belong to a set
+  structure Mem {α : Type} (X : set α) : Type :=
+    mk :: {x : α} (mem : x ∈ X)
 
+  -- TODO: remove
   -- Constructor for Mem
-  definition Mem.mk {X : Set} {x : Object} (H : x ∈ X) : Mem X :=
-    sigma.mk x H
+  -- definition Mem.mk {X : Set} {x : Object} (H : x ∈ X) : Mem X :=
+  --   sigma.mk x H
 
   -- Eta expansion and reduction
-  definition eta_exp {X : Set} (x : Mem X) : x = Mem.mk x.2 := sigma.eq rfl rfl
-  definition eta_red {X : Set} (x : Mem X) : Mem.mk x.2 = x := sigma.eq rfl rfl
+  -- definition eta_exp {X : Set} (x : Mem X) : x = Mem.mk x.2 := sigma.eq rfl rfl
+  -- definition eta_red {X : Set} (x : Mem X) : Mem.mk x.2 = x := sigma.eq rfl rfl
 
   -- Single choice for Mem
-  noncomputable definition single_choice_mem {X : Set} (H : X ≠ ∅) : Mem X :=
+  noncomputable def single_choice_mem {X : Set} (H : X ≠ ∅) : Mem X :=
     have ∃ a, a ∈ X, from single_choice H,
-    Mem.mk (some_spec this)
+    ⟨some_spec this⟩
 
   -- Definition 3.3.1: Functions
-  definition Fun (X Y : Set) : Type := Mem X → Mem Y
+  def Fun {α : Type} (X Y : set α) : Type := Mem X → Mem Y
   infixr ` => `:25 := Fun
 
   -- Definition 3.3.7: Equality of functions
-  proposition fun_eq {X Y : Set} {f g : X => Y} :
+  theorem fun_eq {X Y : Set} {f g : X => Y} :
       f = g ↔ ∀ x : Mem X, f x = g x :=
     iff.intro
-      (suppose f = g,
-        take x : Mem X,
-        show f x = g x, from this ▸ rfl)
+      (assume (H : f = g) (x : Mem X),
+        show f x = g x, from congr_fun H x)
       (suppose ∀ x : Mem X, f x = g x,
         show f = g, from funext this)
 
@@ -540,23 +540,22 @@ section object
   section intro_elim
     variables {X Y : Set} {f g : X => Y}
 
-    proposition fun_eq_intro : (∀ x : Mem X, f x = g x) → f = g :=
-      iff.mpr fun_eq
+    theorem fun_eq_intro : (∀ x : Mem X, f x = g x) → f = g :=
+      fun_eq.mpr
 
-    proposition fun_eq_elim : f = g → ∀ x : Mem X, f x = g x :=
-      iff.mp fun_eq
+    theorem fun_eq_elim : f = g → ∀ x : Mem X, f x = g x :=
+      fun_eq.mp
   end intro_elim
 
   -- Definition 3.3.10: Composition
-  definition comp {X Y Z : Set} (g : Y => Z) (f : X => Y) : X => Z :=
-    λ x : Mem X, g (f x)
-  infixr ` ∘ ` := comp
+  def comp {X Y Z : Set} : (Y => Z) → (X => Y) → (X => Z) :=
+    function.comp
 
   -- Lemma 3.3.12: Composition is associative
   lemma comp_assoc {X Y Z W : Set} (f : Z => W) (g : Y => Z) (h : X => Y) :
       f ∘ (g ∘ h) = (f ∘ g) ∘ h :=
     fun_eq_intro
-      (take x : Mem X,
+      (assume x : Mem X,
         show (f ∘ (g ∘ h)) x = ((f ∘ g) ∘ h) x, from calc
           (f ∘ (g ∘ h)) x = f ((g ∘ h) x) : rfl
           ... = f (g (h x)) : rfl
@@ -564,64 +563,65 @@ section object
           ... = ((f ∘ g) ∘ h) x : rfl)
 
   -- Definition 3.3.14: One-to-one functions
-  definition injective {X Y : Set} (f : X => Y) : Prop :=
+  def injective {X Y : Set} (f : X => Y) : Prop :=
     ∀ {{x x' : Mem X}}, f x = f x' → x = x'
 
   -- Definition 3.3.17: Onto functions
-  definition surjective {X Y : Set} (f : X => Y) : Prop :=
+  def surjective {X Y : Set} (f : X => Y) : Prop :=
     ∀ y : Mem Y, ∃ x : Mem X, f x = y
 
   -- Definition 3.3.20: Bijective functions
-  definition bijective {X Y : Set} (f : X => Y) : Prop :=
+  def bijective {X Y : Set} (f : X => Y) : Prop :=
     injective f ∧ surjective f
 
+  -- TODO: remove
   -- Convenient way to use injectivity from a bijection
-  proposition bleft {X Y : Set} {f : X => Y} (H₁ : bijective f) {x x' : Mem X}
-      (H₂ : f x = f x') : x = x' :=
-    have injective f, from and.left H₁,
-    show x = x', from this H₂
+  -- theorem bleft {X Y : Set} {f : X => Y} (H₁ : bijective f) {x x' : Mem X}
+  --     (H₂ : f x = f x') : x = x' :=
+  --   have in ective f, from H₁.left,
+  --   show x = x', from this H₂
 
   -- Inverse functions
   section inverse
-    variables {X Y : Set}
+    variables {α : Type} {X Y : set α}
 
-    definition left_inverse (f : X => Y) (g : Y => X) : Prop := g ∘ f = id
+    def left_inverse (f : X => Y) (g : Y => X) : Prop := g ∘ f = id
     infix ` <~ `:50 := left_inverse
 
-    definition inverse (f : X => Y) (g : Y => X) : Prop := f <~ g ∧ g <~ f
+    def inverse (f : X => Y) (g : Y => X) : Prop := f <~ g ∧ g <~ f
     infix ` <~> `:50 := inverse
 
-    definition invertible (f : X => Y) : Prop := ∃ g : Y => X, f <~> g
+    def invertible (f : X => Y) : Prop := ∃ g : Y => X, f <~> g
   end inverse
 
   -- Uniqueness of inverse functions
   section inverse_unique
     parameters {X Y : Set} {f : X => Y}
 
-    proposition inverse_unique (H : invertible f) : ∃! g : Y => X, f <~> g :=
-      obtain (g : Y => X) (Hg : f <~> g), from H,
+    theorem inverse_unique (H : invertible f) : ∃! g : Y => X, f <~> g :=
+      let ⟨g, (Hg : f <~> g)⟩ := H in
       have ∀ h : Y => X, f <~> h → h = g, from
-        take h : Y => X,
-        assume Hh : f <~> h,
+        assume (h : Y => X) (Hh : f <~> h),
         show h = g, from fun_eq_intro
-          (take y : Mem Y,
-            have f (g y) = y, from fun_eq_elim (and.right Hg) y,
-            have h (f (g y)) = h y, from this ▸ rfl,
-            have g y = h y, from fun_eq_elim (and.left Hh) (g y) ▸ this,
-            show h y = g y, from this⁻¹),
-      show ∃! g : Y => X, f <~> g, from exists_unique.intro g Hg this
+          (assume y : Mem Y,
+            have f (g y) = y, from fun_eq_elim Hg.right y,
+            have h (f (g y)) = h y, from congr_arg h this,
+            have id (g y) = h y, from fun_eq_elim Hh.left (g y) ▸ this,
+            show h y = g y, from this.symm),
+      show ∃! g : Y => X, f <~> g, from ⟨g, Hg, this⟩
 
-    noncomputable definition the_inverse (H : invertible f) : Y => X :=
+    noncomputable def the_inverse (H : invertible f) : Y => X :=
       the (inverse_unique H)
 
-    proposition the_inverse_spec (H : invertible f) : f <~> (the_inverse H) :=
+    theorem the_inverse_spec (H : invertible f) : f <~> the_inverse H :=
       the_spec (inverse_unique H)
 
-    proposition eq_the_inverse {g : Y => X} (H : f <~> g) :
-        g = the_inverse (exists.intro g H) :=
-      eq_the (inverse_unique (exists.intro g H)) H
+    theorem eq_the_inverse {g : Y => X} (H : f <~> g) :
+        g = the_inverse ⟨g, H⟩ :=
+      eq_the (inverse_unique ⟨g, H⟩) H
   end inverse_unique
 
+/-
   -- Properties of inverse functions
   section inverse_properties
     variables {X Y : Set} {f : X => Y} {g : Y => X}
