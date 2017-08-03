@@ -393,50 +393,51 @@ section object
           show A ⊆ C ∧ B ⊆ C, from ⟨H₁, H₂⟩)
   end
 
-/-
   -- Exercise 3.1.8
   section absorption
     variables {A B : Set}
 
     example : A ∩ (A ∪ B) = A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∩ (A ∪ B), and.left this)
-        (take x, suppose x ∈ A, and.intro this (or.inl this))
+        (assume x (Hx : x ∈ A ∩ (A ∪ B)), and.left Hx)
+        (assume x (Hx : x ∈ A), ⟨Hx, or.inl Hx⟩)
 
     example : A ∪ (A ∩ B) = A :=
       set_eq_intro
-        (take x, suppose x ∈ A ∪ (A ∩ B), or.elim this id and.left)
-        (take x, suppose x ∈ A, or.inl this)
+        (assume x (Hx : x ∈ A ∪ (A ∩ B)), or.elim Hx id and.left)
+        (assume x (Hx : x ∈ A), or.inl Hx)
   end absorption
 
   -- Exercise 3.1.9
   section
     variables {A B X : Set}
-    premises (H₁ : A ∪ B = X) (H₂ : A ∩ B = ∅)
+    variables (Hu : A ∪ B = X) (Hi : A ∩ B = ∅)
 
-    private proposition inverse_one : A = X \ B :=
+    theorem set_complement_left : A = X \ B :=
       set_eq_intro
-        (take x,
-          suppose x ∈ A,
-          have x ∈ X, from H₁ ▸ or.inl this,
-          have x ∉ B, from
+        (assume x (Hx : x ∈ A),
+          have x ∈ A ∪ B, from or.inl Hx,
+          have H₁ : x ∈ X, from subset_of_eq Hu this,
+          have H₂ : x ∉ B, from
             suppose x ∈ B,
-            have x ∈ A ∩ B, from and.intro `x ∈ A` `x ∈ B`,
-            have x ∈ ∅, from H₂ ▸ this,
+            have x ∈ A ∩ B, from ⟨Hx, this⟩,
+            have x ∈ ∅, from subset_of_eq Hi this,
             absurd this not_in_empty,
-          show x ∈ X \ B, from and.intro `x ∈ X` `x ∉ B`)
+          show x ∈ X \ B, from ⟨H₁, H₂⟩)
         (take x,
           suppose x ∈ X \ B,
-          have H₃ : x ∈ A ∪ B, from H₁⁻¹ ▸ and.left this,
-          have H₄ : x ∉ B, from and.right this,
+          have H₁ : x ∈ A ∪ B, from subset_of_eq Hu.symm this.left,
+          have H₂ : x ∉ B, from this.right,
           show x ∈ A, from by_contradiction
             (suppose x ∉ A,
-              have x ∉ A ∧ x ∉ B, from and.intro this H₄,
+              have x ∉ A ∧ x ∉ B, from ⟨this, H₂⟩,
               have x ∉ A ∪ B, from dm_not_or this,
-              absurd H₃ this))
+              absurd H₁ this))
 
-    private proposition inverse_two : B = X \ A :=
-      inverse_one (union_comm ▸ H₁) (inter_comm ▸ H₂)
+    theorem set_complement_right : B = X \ A :=
+      have Hu' : B ∪ A = X, from (@union_comm A B) ▸ Hu,
+      have Hi' : B ∩ A = ∅, from (@inter_comm A B) ▸ Hi,
+      set_complement_left Hu' Hi'
   end
 
   -- Exercise 3.1.10
@@ -445,67 +446,66 @@ section object
 
     example : (A \ B) ∩ (B \ A) = ∅ :=
       no_elements
-        (take x,
-          assume H : x ∈ (A \ B) ∩ (B \ A),
-          have x ∈ A, from and.left (and.left H),
-          have x ∉ A, from and.right (and.right H),
-          absurd `x ∈ A` `x ∉ A`)
+        (assume x (Hx : x ∈ (A \ B) ∩ (B \ A)),
+          have H₁ : x ∈ A, from and.left (and.left Hx),
+          have H₂ : x ∉ A, from and.right (and.right Hx),
+          absurd H₁ H₂)
 
     example : (A \ B) ∩ (A ∩ B) = ∅ :=
       no_elements
-        (take x,
-          assume H : x ∈ (A \ B) ∩ (A ∩ B),
-          have x ∈ B, from and.right (and.right H),
-          have x ∉ B, from and.right (and.left H),
-          absurd `x ∈ B` `x ∉ B`)
+        (assume x (Hx : x ∈ (A \ B) ∩ (A ∩ B)),
+          have H₁ : x ∈ B, from and.right (and.right Hx),
+          have H₂ : x ∉ B, from and.right (and.left Hx),
+          absurd H₁ H₂)
 
     example : (B \ A) ∩ (A ∩ B) = ∅ :=
       no_elements
-        (take x,
-          assume H : x ∈ (B \ A) ∩ (A ∩ B),
-          have x ∈ A, from and.left (and.right H),
-          have x ∉ A, from and.right (and.left H),
-          absurd `x ∈ A` `x ∉ A`)
+        (assume x (Hx : x ∈ (B \ A) ∩ (A ∩ B)),
+          have H₁ : x ∈ A, from and.left (and.right Hx),
+          have H₂ : x ∉ A, from and.right (and.left Hx),
+          absurd H₁ H₂)
 
     example : (A \ B) ∪ (A ∩ B) ∪ (B \ A) = A ∪ B :=
       set_eq_intro
-        (take x,
-          suppose x ∈ (A \ B) ∪ (A ∩ B) ∪ (B \ A),
-          show x ∈ A ∪ B, from or.elim this
+        (assume x (H : x ∈ (A \ B) ∪ (A ∩ B) ∪ (B \ A)),
+          show x ∈ A ∪ B, from or.elim H
             (suppose x ∈ (A \ B) ∪ (A ∩ B), or.elim this
               (suppose x ∈ A \ B, or.inl (and.left this))
               (suppose x ∈ A ∩ B, or.inl (and.left this)))
             (suppose x ∈ B \ A, or.inr (and.left this)))
-        (take x,
-          suppose x ∈ A ∪ B,
-          show x ∈ (A \ B) ∪ (A ∩ B) ∪ (B \ A), from or.elim this
-            (suppose x ∈ A, by_cases
-              (suppose x ∈ B, or.inl (or.inr (and.intro `x ∈ A` `x ∈ B`)))
-              (suppose x ∉ B, or.inl (or.inl (and.intro `x ∈ A` `x ∉ B`))))
-            (suppose x ∈ B, by_cases
-              (suppose x ∈ A, or.inl (or.inr (and.intro `x ∈ A` `x ∈ B`)))
-              (suppose x ∉ A, or.inr (and.intro `x ∈ B` `x ∉ A`))))
+        (assume x (H : x ∈ A ∪ B),
+          show x ∈ (A \ B) ∪ (A ∩ B) ∪ (B \ A), from or.elim H
+            (assume H : x ∈ A, by_cases
+              (suppose x ∈ B, or.inl (or.inr ⟨H, this⟩))
+              (suppose x ∉ B, or.inl (or.inl ⟨H, this⟩)))
+            (assume H : x ∈ B, by_cases
+              (suppose x ∈ A, or.inl (or.inr ⟨this, H⟩))
+              (suppose x ∉ A, or.inr ⟨H, this⟩)))
   end
 
   -- Some miscellaneous set properties
   section misc
     variables {x : Object} {A B : Set}
 
-    proposition in_union_left (H₁ : x ∈ A ∪ B) (H₂ : x ∉ B) : x ∈ A :=
+    theorem in_union_left (H₁ : x ∈ A ∪ B) (H₂ : x ∉ B) : x ∈ A :=
       or.elim H₁ id (suppose x ∈ B, absurd this H₂)
 
-    proposition in_union_right (H₁ : x ∈ A ∪ B) (H₂ : x ∉ A) : x ∈ B :=
-      in_union_left (union_comm ▸ H₁) H₂
+    theorem in_union_right (H₁ : x ∈ A ∪ B) (H₂ : x ∉ A) : x ∈ B :=
+      have x ∈ B ∪ A, from (@union_comm A B) ▸ H₁,
+      show x ∈ B, from in_union_left this H₂
 
-    proposition not_in_disjoint_left (H₁ : A ∩ B = ∅) (H₂ : x ∈ B) : x ∉ A :=
+    theorem not_in_disjoint_left (H₁ : A ∩ B = ∅) (H₂ : x ∈ B) : x ∉ A :=
       suppose x ∈ A,
-      have x ∈ A ∩ B, from and.intro this H₂,
-      absurd (H₁ ▸ this) not_in_empty
+      have x ∈ A ∩ B, from ⟨this, H₂⟩,
+      have x ∈ ∅, from subset_of_eq H₁ this,
+      absurd this not_in_empty
 
-    proposition not_in_disjoint_right (H₁ : A ∩ B = ∅) (H₂ : x ∈ A) : x ∉ B :=
-      not_in_disjoint_left (inter_comm ▸ H₁) H₂
+    theorem not_in_disjoint_right (H₁ : A ∩ B = ∅) (H₂ : x ∈ A) : x ∉ B :=
+      have B ∩ A = ∅, from (@inter_comm A B) ▸ H₁,
+      show x ∉ B, from not_in_disjoint_left this H₂
   end misc
 
+/-
   -- Convert Set to Type using dependent pairs
   definition Mem (X : Set) : Type := Σ x, x ∈ X
 
