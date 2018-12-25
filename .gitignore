@@ -6,3 +6,8 @@ build.ninja
 *.ilean
 *.clean
 *.d
+
+*.glob
+*.vo
+*.aux
+coq/html
