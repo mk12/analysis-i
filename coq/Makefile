@@ -90,6 +90,9 @@ GALLINA  ?= "$(COQBIN)gallina"
 COQDOC   ?= "$(COQBIN)coqdoc"
 COQMKFILE ?= "$(COQBIN)coq_makefile"
 
+# Beatifier program
+BEAUTIFIER ?= $(COQC) $(COQDEBUG) $(COQFLAGS) -beautify
+
 # Timing scripts
 COQMAKE_ONE_TIME_FILE ?= "$(COQLIB)/tools/make-one-time-file.py"
 COQMAKE_BOTH_TIME_FILES ?= "$(COQLIB)/tools/make-both-time-files.py"
@@ -670,7 +673,7 @@ $(addsuffix .timing.diff,$(VFILES)): %.timing.diff : %.before-timing %.after-tim
 
 $(BEAUTYFILES): %.v.beautified: %.v
 	$(SHOW)'BEAUTIFY $<'
-	$(HIDE)$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) -beautify $<
+	$(HIDE)$(TIMER) $(BEAUTIFIER) $<
 
 $(GFILES): %.g: %.v
 	$(SHOW)'GALLINA $<'

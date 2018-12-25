@@ -11,3 +11,5 @@ build.ninja
 *.vo
 *.aux
 coq/html
+coq/Makefile.local
+coq/*.old

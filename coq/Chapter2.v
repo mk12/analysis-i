@@ -155,5 +155,5 @@ Qed.
 Theorem pos_pred {a : N} (H : pos a): ∃ b : N, S b = a.
 Proof.
   induction a as [|a Ha].
-  - show (exists b : N, S b = 0).
+  - show (∃ b : N, S b = 0).
  
