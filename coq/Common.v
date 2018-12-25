@@ -7,7 +7,7 @@ Require Export Coq.Unicode.Utf8.
 (* Require Export Coq.Logic.Classical. *)
 
 (** Restate the current goal *)
-Ltac show G := change G.
+Ltac show G := tryif change G then idtac else fail 0 "Not the current goal".
 
 (** Modus tollens *)
 Theorem mt {p q : Prop} (Hpq : p → q) (Hnq : ¬ q) : ¬ p.

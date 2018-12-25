@@ -54,7 +54,7 @@ Proof.
 Qed.
 
 (** Proposition 2.1.16: Recursive definitions *)
-Definition recursive_def (f: N → N → N) (c : N) : N → N :=
+Definition recursive_def (f : N → N → N) (c : N) : N → N :=
   fix a n :=
     match n with
     | O => c
@@ -109,6 +109,15 @@ Proof.
     simpl. rewrite IHa. reflexivity.
 Qed.
 
+
+(** Proposition 2.2.6: Cancellation law *)
+Theorem add_cancel2 {a b c : N} (H : a + b = a + c) : b = c.
+Proof.
+  induction a as [|a IHa].
+  - simpl in H. exact H.
+  - simpl in H. exact (IHa (succ_inj H)).
+Qed.
+
 (** Proposition 2.2.6: Cancellation law *)
 Theorem add_cancel {a b c : N} : a + b = a + c → b = c.
 Proof.
@@ -141,3 +150,10 @@ Proof.
   - show (S a = O ∧ b = O).
     simpl in H. contradiction (succ_ne_zero H).
 Qed.
+
+(** Lemma 2.2.10 *)
+Theorem pos_pred {a : N} (H : pos a): ∃ b : N, S b = a.
+Proof.
+  induction a as [|a Ha].
+  - show (exists b : N, S b = 0).
+ 
