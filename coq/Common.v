@@ -1,19 +1,26 @@
 (******************************************************************************)
 (* Copyright 2018 Mitchell Kember. Subject to the MIT License.                *)
-(* Formalization of Analysis I: Common theorems                               *)
+(* Formalization of Analysis I: Common                                        *)
 (******************************************************************************)
 
-(* Require Export Coq.Logic.Classical. *)
+(** * Common *)
+
+(** ** Libraries *)
 Require Export Coq.Setoids.Setoid.
 Require Export Coq.Unicode.Utf8.
 
-(** Restate the current goal *)
+(** ** Tactics *)
+
+(** *** Restate the current goal *)
 Ltac show G := tryif change G then idtac else fail 0 "Not the current goal".
 
-(** Modus tollens *)
-Theorem mt {p q : Prop} (Hpq : p → q) (Hnq : ¬ q) : ¬ p.
+(** ** Theorems *)
+
+(** *** Modus tollens *)
+Theorem mt {p q : Prop} (Hpq : p → q) (HNq : ¬ q) : ¬ p.
 Proof.
   intro Hp.
-  contradiction Hnq.
+  contradiction HNq.
   exact (Hpq Hp).
 Qed.
+
