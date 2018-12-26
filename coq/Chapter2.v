@@ -3,6 +3,8 @@
 (* Formalization of Analysis I: Chapter 2                                     *)
 (******************************************************************************)
 
+Set Warnings "-notation-overridden".
+
 Require Import Common.
 
 (** Definition 2.1.1: The natural numbers *)
@@ -65,9 +67,9 @@ Definition recursive_def (f : N → N → N) (c : N) : N → N :=
 Fixpoint add (n m : N) : N :=
   match n with
   | O => m
-  | S n' => S (n' + m)
-  end
-where "x + y" := (add x y).
+  | S n' => S (add n' m)
+  end.
+Infix "+" := add.
 
 (** Lemma 2.2.2 *)
 Theorem add_zero_right {n : N} : n + O = n.
@@ -109,24 +111,24 @@ Proof.
     simpl. rewrite IHa. reflexivity.
 Qed.
 
-
 (** Proposition 2.2.6: Cancellation law *)
-Theorem add_cancel2 {a b c : N} (H : a + b = a + c) : b = c.
+Theorem add_cancel {a b c : N} (H : a + b = a + c) : b = c.
 Proof.
   induction a as [|a IHa].
   - simpl in H. exact H.
   - simpl in H. exact (IHa (succ_inj H)).
 Qed.
 
-(** Proposition 2.2.6: Cancellation law *)
-Theorem add_cancel {a b c : N} : a + b = a + c → b = c.
+(** Specialization of Proposition 2.2.6 where c = 0 *)
+Theorem add_cancel_zero {a b : N} (H : a + b = a) : b = O.
 Proof.
-  induction a as [|a IHa].
-  - show (O + b = O + c → b = c).
-    simpl. trivial.
-  - show (S a + b = S a + c → b = c).
-    intro H. simpl in H. exact (IHa (succ_inj H)).
+  replace a with (a + O) in H at 2 by apply add_zero_right.
+  exact (add_cancel H).
 Qed.
+
+(** Add to both sides of an equation **)
+Theorem add_eqn {a b c d : N} (Hab : a = b) (Hcd : c = d) : a + c = b + d.
+Proof. rewrite Hab, Hcd. reflexivity. Qed.
 
 (** Definition 2.2.7: Positive natural numbers *)
 Definition pos (n : N) : Prop := n ≠ O.
@@ -144,7 +146,7 @@ Qed.
 (** Corollary 2.2.9 *)
 Theorem add_eq_zero {a b : N} (H : a + b = O) : a = O ∧ b = O.
 Proof.
-  induction a as [|a IHa].
+  destruct a.
   - show (O = O ∧ b = O).
     split. reflexivity. exact H.
   - show (S a = O ∧ b = O).
@@ -154,6 +156,57 @@ Qed.
 (** Lemma 2.2.10 *)
 Theorem pos_pred {a : N} (H : pos a): ∃ b : N, S b = a.
 Proof.
-  induction a as [|a Ha].
-  - show (∃ b : N, S b = 0).
- 
+  destruct a.
+  - show (∃ b : N, S b = O).
+    contradiction H. reflexivity.
+  - show (∃ b : N, S b = S a).
+    exists a. reflexivity.
+Qed.
+
+(** Definition 2.2.11: Ordering of the natural numbers *)
+Definition le (n m : N) : Prop := ∃ a : N, m = n + a.
+Definition lt (n m : N) : Prop := le n m ∧ n ≠ m.
+Definition ge (n m: N) : Prop := le m n.
+Definition gt (n m : N) : Prop := lt m n.
+Infix "≤" := le.
+Infix "<" := lt.
+Infix "≥" := ge.
+Infix ">" := gt.
+
+(** Proposition 2.2.12: Basic properties of order for natural numbers *)
+Section order_properties.
+  Context {a b c : N}.
+
+  Theorem order_refl : a ≥ a.
+  Proof. exists O. symmetry. exact add_zero_right. Qed.
+
+  Theorem order_trans : a ≥ b → b ≥ c → a ≥ c.
+  Proof.
+    intros [n Hn] [m Hm].
+    exists (m + n).
+    rewrite Hn, Hm, add_assoc.
+    reflexivity.
+  Qed.
+
+  Theorem order_antisymm : a ≥ b → b ≥ a → a = b.
+  Proof.
+    intros [n Hn] [m Hm].
+    assert (n = O) as H0. {
+      rewrite Hn, add_assoc in Hm.
+      apply eq_sym, add_cancel_zero, add_eq_zero, proj1 in Hm.
+      exact Hm.
+    }
+    rewrite Hn, H0, add_zero_right.
+    reflexivity.
+  Qed.
+
+  Theorem ge_iff_add_ge : a ≥ b ↔ a + c ≥ b + c.
+  Proof.
+    split.
+    - intros [n Hn].
+      exists n.
+      assert (a + c = b + n + c) as H0 by apply (add_eqn Hn eq_refl).
+      rewrite add_assoc, (@add_comm n c), <-add_assoc in H0.
+      exact H0.
+    - intros [n Hn].
+End order_properties.
