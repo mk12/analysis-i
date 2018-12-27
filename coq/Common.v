@@ -16,9 +16,13 @@ Require Export Coq.Unicode.Utf8.
 
 (** ** Tactics *)
 
+(** *** Restate a hypothesis *)
+
+Tactic Notation "given" constr(H) := idtac.
+
 (** *** Restate the current goal *)
 
-Ltac show G := tryif change G then idtac else fail 0 "Not the current goal".
+Ltac show G := change G.
 
 (** ** Theorems *)
 
