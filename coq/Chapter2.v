@@ -61,7 +61,18 @@ Proof mt succ_inj (mt succ_inj succ_ne_zero).
 (** *** Axiom 2.5: Principle of mathematical induction *)
 
 Goal ∀ (p : N → Prop) (HO : p O) (HS : ∀ n : N, p n → p (S n)) (n : N), p n.
-Proof. now simple induction n. Qed.
+Proof N_ind.
+
+(** With induction, we can show that no natural number equals its successor: *)
+
+Theorem succ_ne_self {n : N} : S n ≠ n.
+Proof.
+  induction n as [|n IHn].
+  - show (S O ≠ O).
+    exact succ_ne_zero.
+  - show (S (S n) ≠ S n).
+    apply (mt succ_inj). exact IHn.
+Qed.
 
 (** *** Proposition 2.1.16: Recursive definitions *)
 
@@ -105,6 +116,14 @@ Proof.
   - show (S n + S m = S (S n + m)).
     cbn. now rewrite IHn.
 Qed.
+
+(** The successor of n is the same as n + 1. *)
+
+Theorem add_one_left {n : N} : S n = num 1 + n.
+Proof. reflexivity. Qed.
+
+Theorem add_one_right {n : N} : S n = n + num 1.
+Proof. cbn. now rewrite add_succ_right, add_zero_right. Qed.
 
 (** *** Proposition 2.2.4: Addition is commutative *)
 
@@ -160,7 +179,7 @@ Definition pos (n : N) : Prop := n ≠ O.
 
 Theorem add_pos {a b : N} (H : pos a) : pos (a + b).
 Proof.
-  destruct b.
+  destruct b as [|b].
   - show (pos (a + O)).
     now rewrite add_zero_right.
   - show (pos (a + S b)).
@@ -171,7 +190,7 @@ Qed.
 
 Theorem add_eq_zero {a b : N} (H : a + b = O) : a = O ∧ b = O.
 Proof.
-  destruct a.
+  destruct a as [|a].
   - given (H : O + b = O). show (O = O ∧ b = O).
     split. reflexivity. exact H.
   - given (H : S a + b = O). show (S a = O ∧ b = O).
@@ -182,7 +201,7 @@ Qed.
 
 Theorem pos_pred {a : N} (H : pos a): ∃ b : N, S b = a.
 Proof.
-  destruct a.
+  destruct a as [|a].
   - given (H : pos O). show (∃ b : N, S b = O).
     contradiction (H eq_refl).
   - given (H : pos (S a)). show (∃ b : N, S b = S a).
@@ -203,8 +222,12 @@ Infix ">" := gt.
 
 (** *** Proposition 2.2.12: Basic properties of order for natural numbers *)
 
+(** Order is reflexive: *)
+
 Theorem order_refl {a : N} : a ≥ a.
 Proof. exists O. now rewrite add_zero_right. Qed.
+
+(** Order is transitive: *)
 
 Theorem order_trans {a b c : N} : a ≥ b → b ≥ c → a ≥ c.
 Proof.
@@ -212,6 +235,8 @@ Proof.
   exists (m + n).
   now rewrite Hn, Hm, add_assoc.
 Qed.
+
+(** Order is anti-symmetric: *)
 
 Theorem order_antisymm {a b : N} : a ≥ b → b ≥ a → a = b.
 Proof.
@@ -223,7 +248,9 @@ Proof.
   now rewrite Hn, H0, add_zero_right.
 Qed.
 
-Theorem ge_iff_add_ge {a b c : N} : a ≥ b ↔ a + c ≥ b + c.
+(** Addition preserves order: *)
+
+Theorem order_iff_add {a b c : N} : a ≥ b ↔ a + c ≥ b + c.
 Proof.
   split.
   - show (a ≥ b → a + c ≥ b + c).
@@ -238,6 +265,11 @@ Proof.
     rewrite (@add_comm a c), (@add_comm (b + n) c) in Hn.
     exact (add_cancel Hn).
 Qed.
+
+Notation add_le := (iff_mp order_iff_add) (only parsing).
+Notation cancel_le := (iff_mpr order_iff_add) (only parsing).
+
+(** Extra properties: *)
 
 Theorem lt_iff_pos {a b : N} : a < b ↔ ∃ d : N, b = a + d ∧ pos d.
 Proof.
@@ -270,7 +302,7 @@ Proof.
   split.
   - show (a < b → S a ≤ b).
     intro HLT.
-    destruct (proj1 lt_iff_pos HLT) as [n [Hn HPn]].
+    destruct (iff_mp lt_iff_pos HLT) as [n [Hn HPn]].
     destruct (pos_pred HPn) as [m Hm].
     exists m.
     now rewrite <-Hm, add_succ_right in Hn.
@@ -288,14 +320,75 @@ Proof.
       contradiction (succ_ne_zero Hn).
 Qed.
 
-(** The following properties are not in the textbook. *)
+(** The following properties are not listed in the textbook. *)
+
+Theorem ge_zero {a : N} : a ≥ O.
+Proof. now exists a. Qed.
+
+Theorem succ_gt_zero {a : N} : S a > O.
+Proof. split. exact ge_zero. exact (not_eq_sym succ_ne_zero). Qed.
+
+Theorem not_lt_zero {a : N} : ¬ (a < O).
+Proof.
+  intros [[n Hn] HNO].
+  apply eq_sym, add_eq_zero, proj1 in Hn.
+  contradiction (HNO Hn).
+Qed.
+
+Theorem le_or_gt (a b : N) : a ≤ b \/ a > b.
+Proof.
+  induction a as [|a IHa].
+  - show (O ≤ b \/ O > b).
+    left. exact ge_zero.
+  - show (S a ≤ b \/ S a > b).
+    induction b as [|b IHb].
+    + show (S a ≤ O \/ S a > O).
+      right. exact succ_gt_zero.
+    + show (S a ≤ S b \/ S a > S b).
+      rewrite 2 add_one_right.
+      admit.
+Admitted.
+
+Theorem not_le_and_gt {a b : N} : ¬ (a ≤ b ∧ a > b).
+Proof.
+  intros [[n Hn] [[m Hm] HNba]].
+  rewrite Hn, add_assoc in Hm.
+  apply eq_sym, add_cancel_zero, add_eq_zero, proj1 in Hm.
+  rewrite Hm, add_zero_right in Hn.
+  contradiction (HNba Hn).
+Qed.
+
+Theorem le_iff_eq_or_lt {a b : N} : a ≤ b ↔ a = b ∨ a < b.
+Proof.
+  split.
+  - show (a ≤ b → a = b ∨ a < b).
+    intros HLT.
+    destruct (HLT) as [[|n] Hn].
+    + given (Hn : b = a + O). left. show (a = b).
+      now rewrite add_zero_right in Hn.
+    + given (Hn : b = a + S n). right. show (a < b).
+      split.
+      * show (a ≤ b).
+        exact HLT.
+      * show (a ≠ b).
+        intro Hab.
+        rewrite Hab in Hn.
+        apply eq_sym, add_cancel_zero in Hn.
+        contradiction (succ_ne_zero Hn).
+  - show (a = b ∨ a < b → a ≤ b).
+    intros [HEQ | HLT].
+    + given (HEQ : a = b).
+      exists O. rewrite add_zero_right. exact (eq_sym HEQ).
+    + given (HLT : a < b).
+      exact (proj1 HLT).
+Qed.
 
 Theorem lt_succ_iff_le {a b : N} : a < S b ↔ a ≤ b.
 Proof.
   split.
   - show (a < S b → a ≤ b).
     intro HLT.
-    destruct (proj1 lt_iff_pos HLT) as [n [Hn HPn]].
+    destruct (iff_mp lt_iff_pos HLT) as [n [Hn HPn]].
     destruct (pos_pred HPn) as [m Hm].
     exists m.
     rewrite <-Hm, add_succ_right in Hn.
@@ -314,25 +407,136 @@ Proof.
       contradiction (succ_ne_zero HaSb).
 Qed.
 
-Theorem not_lt_and_ge {a b : N} : ¬ (a < b ∧ a ≥ b).
+(** *** Proposition 2.2.13: Trichotomy of order for natural numbers *)
+
+(** At least one of the three relations holds. *)
+
+Theorem trichotomy (a b : N) : a < b ∨ a = b ∨ a > b.
 Proof.
-  intros [[[n Hn] HNab] [m Hm]].
-  rewrite Hm, add_assoc in Hn.
-  apply eq_sym, add_cancel_zero, add_eq_zero, proj1 in Hn.
-  rewrite Hn, add_zero_right in Hm.
-  contradiction (HNab Hm).
+  induction a as [|a IHa].
+  - show (O < b ∨ O = b ∨ O > b).
+    destruct b as [|b].
+    + right. left. show (O = O).
+      reflexivity.
+    + left. show (O < S b).
+      split.
+      * show (O ≤ S b).
+        exact ge_zero.
+      * show (O ≠ S b).
+        apply not_eq_sym. exact succ_ne_zero.
+  - show (S a < b ∨ S a = b ∨ S a > b).
+    destruct IHa as [HLT | [HEQ | HGT]].
+    + given (HLT : a < b).
+      pose proof (iff_mp lt_iff_succ_le HLT) as HLE.
+      destruct (HLE) as [n Hn].
+      destruct n as [|n].
+      * right. left. show (S a = b).
+        now rewrite add_zero_right in Hn.
+      * left. show (S a < b).
+        split.
+        -- show (S a ≤ b).
+           exact HLE.
+        -- show (S a ≠ b).
+           intro HSab.
+           rewrite HSab in Hn.
+           apply eq_sym, add_cancel_zero in Hn.
+           contradiction (succ_ne_zero Hn).
+    + given (HEQ : a = b). right. right. show (S a > b).
+      split.
+      * show (b ≤ S a).
+        exists (S O). now rewrite HEQ, add_succ_right, add_zero_right.
+      * show (b ≠ S a).
+        rewrite HEQ. apply not_eq_sym, succ_ne_self.
+    + given (HGT : a > b). right. right. show (S a > b).
+      destruct HGT as [[n Hn] HNba].
+      split.
+      * show (b ≤ S a).
+        exists (S n).
+        rewrite add_succ_right.
+        now f_equal.
+      * show (b ≠ S a).
+        intro HbSa.
+        rewrite HbSa in Hn.
+        cbn in Hn.
+        rewrite <-add_succ_right in Hn.
+        apply eq_sym, add_cancel_zero in Hn.
+        contradiction (succ_ne_zero Hn).
 Qed.
 
-Theorem not_le_and_gt {a b : N} : ¬ (a ≤ b ∧ a > b).
+(** At most one of the three relations holds. *)
+
+Theorem not_eq_and_lt {a b : N} : ¬ (a = b ∧ a < b).
 Proof.
-  intro H.
-  apply and_comm in H.
-  contradiction (not_lt_and_ge H).
+  intros [Hab [_ HNab]].
+  contradiction (HNab Hab).
 Qed.
 
-Theorem not_lt_zero {a : N} : ¬ (a < O).
+Theorem not_eq_and_gt {a b : N} : ¬ (a = b ∧ a > b).
 Proof.
-  intros [[n Hn] HNO].
-  apply eq_sym, add_eq_zero, proj1 in Hn.
-  contradiction (HNO Hn).
+  intros [Hab [_ HNba]].
+  contradiction (HNba (eq_sym Hab)).
 Qed.
+
+Theorem not_lt_and_gt {a b : N} : ¬ (a < b ∧ a > b).
+Proof.
+  intros [[HLE _] HGT].
+  contradiction (not_le_and_gt (conj HLE HGT)).
+Qed.
+
+(** We can derive some more order properties from trichotomy. *)
+
+Theorem le_iff_not_gt {a b : N} : a ≤ b ↔ ¬ a > b.
+Proof.
+  split.
+  - show (a ≤ b → ¬ a > b).
+    intros HLE HGT.
+    contradiction (not_le_and_gt (conj HLE HGT)).
+  - show (¬ a > b → a ≤ b).
+    intro HNGT.
+    destruct (trichotomy a b) as [HLT | [HEQ | HGT]].
+    + given (HLT : a < b).
+      exact (proj1 HLT).
+    + given (HEQ : a = b).
+      rewrite HEQ. exact order_refl.
+    + given (HGT : a > b).
+      contradiction (HNGT HGT).
+Qed.
+
+Theorem lt_iff_not_gt {a b : N} : a < b ↔ ¬ a ≥ b.
+Proof.
+  split.
+  - show (a < b → ¬ a ≥ b).
+    intro HLT.
+    now apply not_not, (iff_mtr le_iff_not_gt) in HLT.
+  - show (¬ a ≥ b → a < b).
+    intros HNGE.
+    destruct (trichotomy a b) as [HLT | [HEQ | HGT]].
+    + given (HLT : a < b).
+      exact HLT.
+    + given (HEQ : a = b).
+      rewrite HEQ in HNGE.
+      contradiction (HNGE order_refl).
+    + given (HGT : a > b).
+      contradiction (HNGE (proj1 HGT)).
+Qed.
+
+(** *** Proposition 2.2.14: Strong principle of induction *)
+
+Section strong_induction.
+  Variables (n0 : N) (p : N → Prop).
+
+  Let q (n : N) : Prop := ∀ m : N, m ≥ n0 ∧ m < n → p m.
+
+  Theorem strong_induction (SI : ∀ n : N, n ≥ n0 → q n → p n) (n : N)
+    (H : n ≥ n0) : p n.
+  Proof.
+    enough (q n) as H0 by exact (SI n H H0).
+    induction n as [|n IHn].
+    - given (H : O ≥ n0). show (∀ m : N, m ≥ n0 ∧ m < O → p m).
+      intros m [_ HmLT].
+      contradiction (not_lt_zero HmLT).
+    - given (H : S n ≥ n0). show (∀ m : N, m ≥ n0 ∧ m < S n → p m).
+      intros m [HmGE HmLT].
+      admit.
+  Admitted.
+End strong_induction.
