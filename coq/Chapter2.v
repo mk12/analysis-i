@@ -548,4 +548,47 @@ Qed.
 
 (** ** Section 2.3: Multiplication *)
 
+(** *** Definition 2.3.1: Multiplication of natural numbers *)
 
+Fixpoint mul (n m : N) : N :=
+  match n with
+  | O => O
+  | S n' => mul n' m + m
+  end.
+
+Infix "*" := mul.
+
+(** *** Exercise 2.3.1 *)
+
+Theorem mul_zero_right {n : N} : n * O = O.
+Proof.
+  induction n as [|n IHn].
+  - show (O * O = O).
+    reflexivity.
+  - given (IHn : n * O = O). show (S n * O = O).
+    cbn. now rewrite IHn.
+Qed.
+
+Theorem mul_succ_right {n m : N} : n * S m = n * m + n.
+Proof.
+  induction n as [|n IHn].
+  - show (O * S m = O * m + O).
+    reflexivity.
+  - given (IHn : n * S m = n * m + n). show (S n * S m = S n * m + S n).
+    cbn.
+    rewrite add_assoc.
+    replace (m + S n) with (n + S m) by now rewrite 2 add_succ_right, add_comm.
+    rewrite <-add_assoc.
+    exact (add_eqn IHn eq_refl).
+Qed.
+
+(** *** Lemma 2.3.2: Multiplication is commutative *)
+
+Theorem mul_comm {n m : N} : n * m = m * n.
+Proof.
+  induction n as [|n IHn].
+  - show (O * m = m * O).
+    cbn. now rewrite mul_zero_right.
+  - given (IHn : n * m = m * n). show (S n * m = m * S n).
+    cbn. now rewrite mul_succ_right, IHn.
+Qed.
