@@ -507,10 +507,19 @@ Section strong_induction.
     enough (q n) as H0 by exact (SI n H H0).
     induction n as [|n IHn].
     - given (H : O ≥ n0). show (∀ m : N, m ≥ n0 ∧ m < O → p m).
-      intros m [_ HmLT].
-      contradiction (not_lt_zero HmLT).
+      intros m [_ HmLTO].
+      contradiction (not_lt_zero HmLTO).
     - given (H : S n ≥ n0). show (∀ m : N, m ≥ n0 ∧ m < S n → p m).
       intros m [HmGE HmLT].
-      admit.
-  Admitted.
+      assert (m ≤ n) as HmLEn by now apply lt_succ_iff_le in HmLT.
+      assert (n ≥ n0) as HnGE by exact (order_trans HmLEn HmGE).
+      assert (q n) as Hqn by exact (IHn HnGE).
+      assert (p n) as Hpn by exact (SI n HnGE Hqn).
+      destruct (dichotomy n m) as [HmGEn | HmLTn].
+      + given (HmGEn : m ≥ n).
+        assert (n = m) as HEQ by exact (order_antisymm HmLEn HmGEn).
+        now rewrite HEQ in Hpn.
+      + given (HmLTn : m < n).
+        exact (Hqn m (conj HmGE HmLTn)).
+  Qed.
 End strong_induction.
