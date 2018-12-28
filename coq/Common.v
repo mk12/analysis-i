@@ -16,19 +16,24 @@ Require Export Coq.Unicode.Utf8.
 
 (** ** Tactics *)
 
-(** *** Restate a hypothesis *)
-
-Tactic Notation "given" constr(H) := idtac.
-
 (** *** Restate the current goal *)
 
 Ltac show G := change G.
+
+(** *** Restate a hypothesis *)
+
+Tactic Notation "given" ne_constr_list(H) := idtac.
+
+(** *** State an intermediate result *)
+
+Tactic Notation "have" uconstr(P) "as" ident(N) "from" uconstr(H) :=
+  assert(P) as N by exact H.
 
 (** ** Theorems *)
 
 (** *** Double negation *)
 
-Theorem not_not {p : Prop} (Hp : p) : ~ ~ p.
+Theorem not_not {p : Prop} (Hp : p) : ¬ ¬ p.
 Proof. intro HNp. contradiction (HNp Hp). Qed.
 
 (** *** Modus tollens *)

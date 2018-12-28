@@ -70,7 +70,7 @@ Proof.
   induction n as [|n IHn].
   - show (S O ≠ O).
     exact succ_ne_zero.
-  - show (S (S n) ≠ S n).
+  - given (IHn : S n ≠ n). show (S (S n) ≠ S n).
     apply (mt succ_inj). exact IHn.
 Qed.
 
@@ -97,45 +97,46 @@ Infix "+" := add.
 
 (** *** Lemma 2.2.2 *)  
 
-Theorem add_zero_right {n : N} : n + O = n.
+Theorem add_zero_right (n : N) : n + O = n.
 Proof.
   induction n as [|n IHn].
   - show (O + O = O).
     reflexivity.
-  - show (S n + O = S n).
+  - given (IHn : n + O = n). show (S n + O = S n).
     cbn. now rewrite IHn.
 Qed.
 
 (** *** Lemma 2.2.3 *)
 
-Theorem add_succ_right {n m : N} : n + S m = S (n + m).
+Theorem add_succ_right (n m : N) : n + S m = S (n + m).
 Proof.
   induction n as [|n IHn].
   - show (O + S m = S (O + m)).
     reflexivity.
-  - show (S n + S m = S (S n + m)).
+  - given (n + S m = S (n + m)). show (S n + S m = S (S n + m)).
     cbn. now rewrite IHn.
 Qed.
 
 (** *** Proposition 2.2.4: Addition is commutative *)
 
-Theorem add_comm {n m : N} : n + m = m + n.
+Theorem add_comm (n m : N) : n + m = m + n.
 Proof.
   induction n as [|n IHn].
   - show (O + m = m + O).
     cbn. now rewrite add_zero_right.
-  - show (S n + m = m + S n).
+  - given (n + m = m + n). show (S n + m = m + S n).
     cbn. now rewrite add_succ_right, IHn.
 Qed.
 
 (** *** Proposition 2.2.5: Addition is associative *)
 
-Theorem add_assoc {a b c : N} : (a + b) + c = a + (b + c).
+Theorem add_assoc (a b c : N) : (a + b) + c = a + (b + c).
 Proof.
   induction a as [|a IHa].
   - show ((O + b) + c = O + (b + c)).
     reflexivity.
-  - show ((S a + b) + c = S a + (b + c)).
+  - given (IHa : (a + b) + c = a + (b + c)).
+    show ((S a + b) + c = S a + (b + c)).
     cbn. now rewrite IHa.
 Qed.
 
@@ -146,7 +147,7 @@ Proof.
   induction a as [|a IHa].
   - given (H : O + b = O + c).
     now cbn in H.
-  - given (H : S a + b = S a + c).
+  - given (H : S a + b = S a + c) (IHa : a + b = a + c → b = c).
     cbn in H. now apply succ_inj, IHa in H.
 Qed.
 
@@ -248,13 +249,13 @@ Proof.
   - show (a ≥ b → a + c ≥ b + c).
     intros [n Hn].
     exists n.
-    assert (a + c = b + n + c) as H0 by exact (add_eqn Hn eq_refl).
-    now rewrite add_assoc, (@add_comm n c), <-add_assoc in H0.
-  - show (a + c ≥ b + c → a ≥ b ).
+    have (a + c = b + n + c) as H0 from (add_eqn Hn eq_refl).
+    now rewrite add_assoc, (add_comm n c), <-add_assoc in H0.
+  - show (a + c ≥ b + c → a ≥ b).
     intros [n Hn].
     exists n.
-    rewrite add_assoc, (@add_comm c n), <-add_assoc in Hn.
-    rewrite (@add_comm a c), (@add_comm (b + n) c) in Hn.
+    rewrite add_assoc, (add_comm c n), <-add_assoc in Hn.
+    rewrite (add_comm a c), (add_comm (b + n) c) in Hn.
     exact (add_cancel Hn).
 Qed.
 
@@ -272,7 +273,7 @@ Proof.
     + show (pos n).
       intro HZn.
       rewrite HZn, add_zero_right in Hn.
-      assert (a = b) as Hab by exact (symmetry Hn).
+      have (a = b) as Hab from (symmetry Hn).
       contradiction (HNab Hab).
   - show ((∃ d : N, b = a + d ∧ pos d) → a < b).
     intros [n [Hn HPn]].
@@ -282,7 +283,7 @@ Proof.
     + show (a ≠ b).
       intro Hab.
       rewrite Hab in Hn.
-      assert (n = O) as HZn by exact (add_cancel_zero (eq_sym Hn)).
+      have (n = O) as HZn from (add_cancel_zero (eq_sym Hn)).
       contradiction (HPn HZn).
 Qed.
 
@@ -391,12 +392,12 @@ Proof.
         exact ge_zero.
       * show (O ≠ S b).
         apply not_eq_sym. exact succ_ne_zero.
-  - show (S a < b ∨ S a = b ∨ S a > b).
+  - given (IHa : a < b ∨ a = b ∨ a > b). show (S a < b ∨ S a = b ∨ S a > b).
     destruct IHa as [HLT | [HEQ | HGT]].
     + given (HLT : a < b).
       apply or_assoc, or_introl, or_comm.
-      show (S a = b \/ S a < b).
-      assert (S a ≤ b) as HSLE by exact (iff_mp lt_iff_succ_le HLT).
+      show (S a = b ∨ S a < b).
+      have (S a ≤ b) as HSLE from (iff_mp lt_iff_succ_le HLT).
       exact (iff_mp le_iff_eq_or_lt HSLE).
     + given (HEQ : a = b). right. right. show (S a > b).
       split.
@@ -423,7 +424,7 @@ Qed.
 (** Next, we use [trichotomy] to prove the dichotomy of [le] and [gt], along
     with some related properties. *)
 
-Theorem dichotomy (a b : N) : a ≤ b \/ a > b.
+Theorem dichotomy (a b : N) : a ≤ b ∨ a > b.
 Proof.
   destruct (trichotomy a b) as [HLT | [HEQ | HGT]].
   - given (HLT : a < b). left. show (a ≤ b).
@@ -512,14 +513,39 @@ Section strong_induction.
     - given (H : S n ≥ n0). show (∀ m : N, m ≥ n0 ∧ m < S n → p m).
       intros m [HmGE HmLT].
       assert (m ≤ n) as HmLEn by now apply lt_succ_iff_le in HmLT.
-      assert (n ≥ n0) as HnGE by exact (order_trans HmLEn HmGE).
-      assert (q n) as Hqn by exact (IHn HnGE).
-      assert (p n) as Hpn by exact (SI n HnGE Hqn).
+      have (n ≥ n0) as HnGE from (order_trans HmLEn HmGE).
+      have (q n) as Hqn from (IHn HnGE).
+      have (p n) as Hpn from (SI n HnGE Hqn).
       destruct (dichotomy n m) as [HmGEn | HmLTn].
       + given (HmGEn : m ≥ n).
-        assert (n = m) as HEQ by exact (order_antisymm HmLEn HmGEn).
+        have (n = m) as HEQ from (order_antisymm HmLEn HmGEn).
         now rewrite HEQ in Hpn.
       + given (HmLTn : m < n).
         exact (Hqn m (conj HmGE HmLTn)).
   Qed.
 End strong_induction.
+
+(** *** Exercise 2.2.6: Backward principle of induction *)
+
+Theorem backward_induction (n : N) (p : N → Prop) (BI : ∀ m : N, p (S m) → p m)
+  (Hp : p n) (m : N) (Hmn : m ≤ n): p m.
+Proof.
+  intros.
+  induction n as [|n IHn].
+  - given (Hp : p O) (Hmn : m ≤ O).
+    have (m = O) as HmO from (order_antisymm ge_zero Hmn).
+    now rewrite HmO.
+  - given (Hp : p (S n)) (Hmn : m ≤ S n).
+    destruct (dichotomy m n) as [HLE | HGT].
+    + given (HLE : m ≤ n).
+      have (p n) as Hpn from (BI n Hp).
+      exact (IHn Hpn HLE).
+    + given (HGT : m > n).
+      have (m ≥ S n) as HGE from (iff_mp lt_iff_succ_le HGT).
+      have (m = S n) as HSn from (order_antisymm HGE Hmn).
+      now rewrite HSn.
+Qed.
+
+(** ** Section 2.3: Multiplication *)
+
+
