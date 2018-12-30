@@ -292,7 +292,7 @@ Proof.
   split.
   - show (a < b → S a ≤ b).
     intro HLT.
-    destruct (iff_mp lt_iff_pos HLT) as [n [Hn HPn]].
+    destruct (iffp lt_iff_pos HLT) as [n [Hn HPn]].
     destruct (pos_pred HPn) as [m Hm].
     exists m.
     now rewrite <-Hm, add_succ_right in Hn.
@@ -330,7 +330,7 @@ Proof.
   split.
   - show (a < S b → a ≤ b).
     intro HLT.
-    destruct (iff_mp lt_iff_pos HLT) as [n [Hn HPn]].
+    destruct (iffp lt_iff_pos HLT) as [n [Hn HPn]].
     destruct (pos_pred HPn) as [m Hm].
     exists m.
     rewrite <-Hm, add_succ_right in Hn.
@@ -386,18 +386,14 @@ Proof.
     + right. left. show (O = O).
       reflexivity.
     + left. show (O < S b).
-      split.
-      * show (O ≤ S b).
-        exact ge_zero.
-      * show (O ≠ S b).
-        apply not_eq_sym. exact succ_ne_zero.
+      exact succ_gt_zero.
   - given (IHa : a < b ∨ a = b ∨ a > b). show (S a < b ∨ S a = b ∨ S a > b).
     destruct IHa as [HLT | [HEQ | HGT]].
     + given (HLT : a < b).
       apply or_assoc, or_introl, or_comm.
       show (S a = b ∨ S a < b).
-      have (S a ≤ b) as HSLE from (iff_mp lt_iff_succ_le HLT).
-      exact (iff_mp le_iff_eq_or_lt HSLE).
+      have (S a ≤ b) as HSLE from (iffp lt_iff_succ_le HLT).
+      exact (iffp le_iff_eq_or_lt HSLE).
     + given (HEQ : a = b). right. right. show (S a > b).
       split.
       * show (b ≤ S a).
@@ -463,7 +459,7 @@ Proof.
   split.
   - show (a < b → ¬ a ≥ b).
     intro HLT.
-    now apply not_not, (iff_mtr le_iff_not_gt) in HLT.
+    now apply not_not, (iffnr le_iff_not_gt) in HLT.
   - show (¬ a ≥ b → a < b).
     intros HNGE.
     destruct (dichotomy b a) as [HGE | HLT].
@@ -540,7 +536,7 @@ Proof.
       have (p n) as Hpn from (BI n Hp).
       exact (IHn Hpn HLE).
     + given (HGT : m > n).
-      have (m ≥ S n) as HGE from (iff_mp lt_iff_succ_le HGT).
+      have (m ≥ S n) as HGE from (iffp lt_iff_succ_le HGT).
       have (m = S n) as HSn from (order_antisymm HGE Hmn).
       now rewrite HSn.
 Qed.
@@ -630,7 +626,7 @@ Proof.
       contradiction (H eq_refl).
   - show (pos n ∧ pos m → pos (n * m)).
     intro H.
-    now apply dm_not_or, (iff_mtr mul_eq_zero) in H.
+    now apply dm_not_or, (iffnr mul_eq_zero) in H.
 Qed.
 
 (** *** Proposition 2.3.4: Distributive law *)
@@ -669,18 +665,83 @@ Qed.
 
 Theorem mul_lt_mul {a b c : N} (H : a < b) (HPc : pos c) : a * c < b * c.
 Proof.
-  destruct (iff_mp lt_iff_pos H) as [n [Hn HPn]].
+  destruct (iffp lt_iff_pos H) as [n [Hn HPn]].
   enough (∃ d : N, b * c = a * c + d ∧ pos d) by now apply lt_iff_pos.
   exists (n * c).
   split.
   - show (b * c = a * c + n * c).
     now rewrite Hn, right_distrib.
   - show (pos (n * c)).
-    exact (iff_mpr mul_pos (conj HPn HPc)).
+    exact (iffpr mul_pos (conj HPn HPc)).
 Qed.
 
 (** *** Corollary 2.3.7: Cancellation law *)
 
 Theorem mul_cancel {a b c : N} (H : a * c = b * c) (HPc : pos c) : a = b.
-Admitted.
+Proof.
+  destruct (trichotomy a b) as [HLT | [HEQ | HGT]].
+  - given (HLT : a < b).
+    apply (flip mul_lt_mul HPc), proj2 in HLT as HNE.
+    contradiction (HNE H).
+  - given (HEQ : a = b).
+    exact HEQ.
+  - given (HGT : a > b).
+    apply (flip mul_lt_mul HPc), proj2, not_eq_sym in HGT as HNE.
+    contradiction (HNE H).
+Qed.
 
+(** *** Proposition 2.3.9: Euclidean algorithm *)
+
+Theorem euclid_alg {n q : N} (H : pos q) : ∃ m r : N, r < q ∧ n = m * q + r.
+Proof.
+  have (O < q) as HOq from (conj ge_zero (not_eq_sym H)).
+  induction n as [|n IHn].
+  - show (∃ m r : N, r < q ∧ O = m * q + r).
+    exists O, O.
+    split. exact HOq. reflexivity.
+  - given (IHn : ∃ m r : N, r < q ∧ n = m * q + r).
+    show (∃ m r : N, r < q ∧ S n = m * q + r).
+    destruct IHn as [m [r [Hrq Hn]]].
+    destruct (dichotomy q (S r)) as [HGE | HLT].
+    + given (HGE : S r ≥ q).
+      have (S r ≤ q) as HLE from (iffp lt_iff_succ_le Hrq).
+      have (S r = q) as HE from (order_antisymm HGE HLE).
+      exists (S m), O.
+      split.
+      * show (O < q).
+        exact HOq.
+      * show (S n = S m * q + O).
+        cbn. now rewrite add_zero_right, Hn, <-add_succ_right, HE.
+    + given (HLT : S r < q).
+      exists m, (S r).
+      split.
+      * show (S r < q).
+        exact HLT.
+      * show (S n = m * q + S r).
+        now rewrite add_succ_right, Hn.
+Qed.
+
+(** *** Definition 2.3.11: Exponentiation for natural numbers *)
+
+Fixpoint pow (n m : N) : N :=
+  match m with
+  | O => S O
+  | S m => pow n m * n
+  end.
+
+Infix "^" := pow.
+
+(** *** Exercise 2.3.4: Square of binomial *)
+
+Section exercise_2_3_4.
+  Let T := S (S O).
+
+  Goal ∀ (a b : N), (a + b)^T = a^T + T * a * b + b^T.
+  Proof.
+    intros.
+    cbn.
+    rewrite left_distrib, 3 right_distrib.
+    replace (b * a) with (a * b) by apply mul_comm.
+    now rewrite <- 2 add_assoc.
+  Qed.
+End exercise_2_3_4.

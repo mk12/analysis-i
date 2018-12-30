@@ -11,6 +11,7 @@ Export Set Warnings "-notation-overridden".
 
 (** ** Libraries *)
 
+Require Export Coq.Program.Basics.
 Require Export Coq.Setoids.Setoid.
 Require Export Coq.Unicode.Utf8.
 
@@ -43,16 +44,16 @@ Proof. intro Hp. contradiction (HNq (Hpq Hp)). Qed.
 
 (** *** Iff helpers *)
 
-Theorem iff_mp {p q : Prop} (Hpq : p ↔ q) (Hp : p): q.
+Theorem iffp {p q : Prop} (Hpq : p ↔ q) (Hp : p): q.
 Proof proj1 Hpq Hp.
 
-Theorem iff_mpr {p q : Prop} (Hpq : p ↔ q) (Hq : q): p.
+Theorem iffpr {p q : Prop} (Hpq : p ↔ q) (Hq : q): p.
 Proof proj2 Hpq Hq.
 
-Theorem iff_mt {p q : Prop} (Hpq : p ↔ q) (HNp : ¬ p) : ¬ q.
+Theorem iffn {p q : Prop} (Hpq : p ↔ q) (HNp : ¬ p) : ¬ q.
 Proof mt (proj2 Hpq) HNp.
 
-Theorem iff_mtr {p q : Prop} (Hpq : p ↔ q) (HNq : ¬ q) : ¬ p.
+Theorem iffnr {p q : Prop} (Hpq : p ↔ q) (HNq : ¬ q) : ¬ p.
 Proof mt (proj1 Hpq) HNq.
 
 (** *** De Morgan's laws *)
