@@ -27,7 +27,7 @@ Tactic Notation "given" ne_constr_list(H) := idtac.
 (** *** State an intermediate result *)
 
 Tactic Notation "have" uconstr(P) "as" ident(N) "from" uconstr(H) :=
-  assert(P) as N by exact H.
+  assert P as N by exact H.
 
 (** ** Theorems *)
 
@@ -39,11 +39,7 @@ Proof. intro HNp. contradiction (HNp Hp). Qed.
 (** *** Modus tollens *)
 
 Theorem mt {p q : Prop} (Hpq : p → q) (HNq : ¬ q) : ¬ p.
-Proof.
-  intro Hp.
-  contradiction HNq.
-  exact (Hpq Hp).
-Qed.
+Proof. intro Hp. contradiction (HNq (Hpq Hp)). Qed.
 
 (** *** Iff helpers *)
 
@@ -58,3 +54,26 @@ Proof mt (proj2 Hpq) HNp.
 
 Theorem iff_mtr {p q : Prop} (Hpq : p ↔ q) (HNq : ¬ q) : ¬ p.
 Proof mt (proj1 Hpq) HNq.
+
+(** *** De Morgan's laws *)
+
+(* Theorem dm_not_or_not {p q : Prop} (H : ¬ (p ∧ q)) : ¬ p ∨ ¬ q. *)
+
+Theorem dm_not_and {p q : Prop} : ¬ p ∨ ¬ q → ¬ (p ∧ q).
+Proof.
+  intros [HNp | HNq] [Hp Hq].
+  - given (HNp : ¬ p).
+    contradiction (HNp Hp).
+  - given (HNq : ¬ q).
+    contradiction (HNq Hq).
+Qed.
+
+(* Theorem dm_not_and_not (H : ¬ (p ∨ q)) : ¬ p ∧ ¬ q. *)
+
+Theorem dm_not_or {p q : Prop} : ¬ p ∧ ¬ q → ¬ (p ∨ q).
+  intros [HNp HNq] [Hp | Hq].
+  - given (Hp : p).
+    contradiction (HNp Hp).
+  - given (Hq : q).
+    contradiction (HNq Hq).
+Qed.

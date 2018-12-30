@@ -354,11 +354,10 @@ Proof.
   split.
   - show (a ≤ b → a = b ∨ a < b).
     intro HLE.
-    destruct (HLE) as [n Hn].
-    destruct n as [|n].
-    + left. show (a = b).
+    destruct (HLE) as [[|n] Hn].
+    + given (Hn : b = a + O). left. show (a = b).
       now rewrite add_zero_right in Hn.
-    + right. show (a < b).
+    + given (Hn : b = a + S n). right. show (a < b).
       split.
       * show (a ≤ b).
         exact HLE.
@@ -560,7 +559,7 @@ Infix "*" := mul.
 
 (** *** Exercise 2.3.1 *)
 
-Theorem mul_zero_right {n : N} : n * O = O.
+Theorem mul_zero_right (n : N) : n * O = O.
 Proof.
   induction n as [|n IHn].
   - show (O * O = O).
@@ -569,7 +568,7 @@ Proof.
     cbn. now rewrite IHn.
 Qed.
 
-Theorem mul_succ_right {n m : N} : n * S m = n * m + n.
+Theorem mul_succ_right (n m : N) : n * S m = n * m + n.
 Proof.
   induction n as [|n IHn].
   - show (O * S m = O * m + O).
@@ -584,7 +583,7 @@ Qed.
 
 (** *** Lemma 2.3.2: Multiplication is commutative *)
 
-Theorem mul_comm {n m : N} : n * m = m * n.
+Theorem mul_comm (n m : N) : n * m = m * n.
 Proof.
   induction n as [|n IHn].
   - show (O * m = m * O).
@@ -592,3 +591,96 @@ Proof.
   - given (IHn : n * m = m * n). show (S n * m = m * S n).
     cbn. now rewrite mul_succ_right, IHn.
 Qed.
+
+(** *** Lemma 2.3.3: Natural numbers have no zero divisors *)
+
+Theorem mul_eq_zero {n m : N} : n * m = O ↔ n = O ∨ m = O.
+Proof.
+  split.
+  - show (n * m = O → n = O ∨ m = O).
+    intro H.
+    destruct n as [|n].
+    + given (H : O * m = O). left. show (O = O).
+      reflexivity.
+    + given (H : S n * m = O). right. show (m = O).
+      cbn in H. now apply add_eq_zero, proj2 in H.
+  - show (n = O ∨ m = O → n * m = O).
+    intros [Hn | Hm].
+    + given (Hn : n = O).
+      now rewrite Hn.
+    + given (Hm : m = O).
+      now rewrite Hm, mul_zero_right.
+Qed.
+
+(** We can also state the lemma in negative terms using [pos]: *)
+
+Theorem mul_pos {n m : N} : pos (n * m) ↔ pos n ∧ pos m.
+Proof.
+  split.
+  - show (pos (n * m) → pos n ∧ pos m).
+    intro H.
+    split.
+    + show (pos n).
+      intro HnO.
+      rewrite HnO in H.
+      contradiction (H eq_refl).
+    + show (pos m).
+      intro HmO.
+      rewrite HmO, mul_zero_right in H.
+      contradiction (H eq_refl).
+  - show (pos n ∧ pos m → pos (n * m)).
+    intro H.
+    now apply dm_not_or, (iff_mtr mul_eq_zero) in H.
+Qed.
+
+(** *** Proposition 2.3.4: Distributive law *)
+
+Theorem left_distrib (a b c : N) : a * (b + c) = a * b + a * c.
+Proof.
+  induction c as [|c IHc].
+  - show (a * (b + O) = a * b + a * O).
+    now rewrite mul_zero_right, 2 add_zero_right.
+  - given (IHc : a * (b + c) = a * b + a * c).
+    show (a * (b + S c) = a * b + a * S c).
+    rewrite mul_succ_right, <-add_assoc, add_succ_right, mul_succ_right.
+    now rewrite IHc.
+Qed.
+
+Theorem right_distrib (a b c : N) : (b + c) * a = b * a + c * a.
+Proof.
+  rewrite (mul_comm (b + c) a), (mul_comm b a), (mul_comm c a).
+  now rewrite left_distrib.
+Qed.
+
+(** *** Proposition 2.3.5: Multiplication is associative *)
+
+Theorem mul_assoc (a b c : N) : (a * b) * c = a * (b * c).
+Proof.
+  induction a as [|a IHa].
+  - show ((O * b) * c = O * (b * c)).
+    reflexivity.
+  - given (IHa : (a * b) * c = a * (b * c)).
+    show ((S a * b) * c = S a * (b * c)).
+    cbn.
+    now rewrite <-IHa, right_distrib.
+Qed.
+
+(** *** Proposition 2.3.6: Multiplication preserves order *)
+
+Theorem mul_lt_mul {a b c : N} (H : a < b) (HPc : pos c) : a * c < b * c.
+Proof.
+  destruct (iff_mp lt_iff_pos H) as [n [Hn HPn]].
+  enough (∃ d : N, b * c = a * c + d ∧ pos d) by now apply lt_iff_pos.
+  exists (n * c).
+  split.
+  - show (b * c = a * c + n * c).
+    now rewrite Hn, right_distrib.
+  - show (pos (n * c)).
+    exact (iff_mpr mul_pos (conj HPn HPc)).
+Qed.
+
+(** *** Corollary 2.3.7: Cancellation law *)
+
+Theorem mul_cancel {a b c : N} (H : a * c = b * c) (HPc : pos c) : a = b.
+Admitted.
+
